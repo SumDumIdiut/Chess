@@ -249,6 +249,29 @@
             font-size: 18px;
             color: #ccc;
         }
+
+        #promotionDialog {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #2a2a4a, #1e1e3f);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            z-index: 100;
+        }
+
+        #promotionDialog button {
+            margin: 5px;
+            width: 60px;
+            height: 60px;
+            font-size: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
 <body>
@@ -287,6 +310,12 @@
 
 <div id="board"></div>
 <div id="victoryMessage"></div>
+<div id="promotionDialog">
+    <button data-promotion="q">♕</button>
+    <button data-promotion="r">♖</button>
+    <button data-promotion="b">♗</button>
+    <button data-promotion="n">♘</button>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 <script>
@@ -296,11 +325,13 @@
     const blackSelect = document.getElementById('black-select');
     const victoryMessage = document.getElementById('victoryMessage');
     const turnIndicator = document.getElementById('turnIndicator');
+    const promotionDialog = document.getElementById('promotionDialog');
 
     let game = new Chess();
     let selectedSquare = null;
     let isAnimating = false;
     let lastMove = null;
+    let pendingMove = null;
 
     function coordsToSquare(row, col) {
         return String.fromCharCode(97 + col) + (8 - row);
@@ -385,11 +416,9 @@
     }
 
     function highlightMoves(moves, selectedSquare) {
-        // Highlight selected square
         const selSq = document.querySelector(`.square[data-row='${selectedSquare.row}'][data-col='${selectedSquare.col}']`);
         if (selSq) selSq.classList.add('selected');
 
-        // Highlight possible moves
         moves.forEach(mv => {
             const { row, col } = squareToCoords(mv.to);
             const sq = document.querySelector(`.square[data-row='${row}'][data-col='${col}']`);
@@ -430,10 +459,8 @@
             return;
         }
 
-        // If it's a capture, animate the captured piece first
         if (isCapture && capturedPiece) {
             animateCapture(capturedPiece, () => {
-                // Then animate the moving piece
                 animatePieceMovement();
             });
         } else {
@@ -441,7 +468,6 @@
         }
 
         function animatePieceMovement() {
-            // Calculate movement
             const deltaX = (toCoords.col - fromCoords.col) * 80;
             const deltaY = (toCoords.row - fromCoords.row) * 80;
 
@@ -467,40 +493,81 @@
         return currentPlayer;
     }
 
+    function showPromotionDialog(color, move, callback) {
+        promotionDialog.style.display = 'block';
+        const buttons = promotionDialog.querySelectorAll('button');
+        
+        function onPromotionSelect(e) {
+            const promotion = e.target.dataset.promotion;
+            buttons.forEach(btn => btn.removeEventListener('click', onPromotionSelect));
+            promotionDialog.style.display = 'none';
+            callback(promotion);
+        }
+
+        buttons.forEach(btn => {
+            btn.innerHTML = getPieceSVG(btn.dataset.promotion, color).match(/<text[^>]*>([^<]*)<\/text>/)[1];
+            btn.addEventListener('click', onPromotionSelect);
+        });
+    }
+
     function onSquareClick(row, col) {
-        if (game.game_over() || isAnimating) return;
+        if (game.game_over() || isAnimating || promotionDialog.style.display === 'block') return;
 
         const square = coordsToSquare(row, col);
         const piece = game.get(square);
 
-        // If it's AI turn, ignore clicks
         if (isBotTurn()) return;
 
         if (selectedSquare) {
-            // Attempt move
             const from = coordsToSquare(selectedSquare.row, selectedSquare.col);
-            const move = game.move({ from, to: square, promotion: 'q' }); // auto queen promotion
-            if (move) {
-                const isCapture = move.flags.includes('c') || move.flags.includes('e');
-                lastMove = { from, to: square };
-                clearHighlights();
-                animateMove(from, square, isCapture, () => {
-                    selectedSquare = null;
-                    renderBoard();
-                    if (game.game_over()) {
-                        displayVictoryMessage();
-                    } else if (isBotTurn()) {
-                        setTimeout(aiMove, 500);
+            const moveObj = { from, to: square };
+
+            const isPawnPromotion = game.get(from)?.type === 'p' && 
+                ((game.turn() === 'w' && square[1] === '8') || (game.turn() === 'b' && square[1] === '1'));
+
+            if (isPawnPromotion) {
+                pendingMove = moveObj;
+                showPromotionDialog(game.turn(), moveObj, (promotion) => {
+                    moveObj.promotion = promotion;
+                    const move = game.move(moveObj);
+                    if (move) {
+                        const isCapture = move.flags.includes('c') || move.flags.includes('e');
+                        lastMove = { from, to: square };
+                        clearHighlights();
+                        animateMove(from, square, isCapture, () => {
+                            selectedSquare = null;
+                            renderBoard();
+                            if (game.game_over()) {
+                                displayVictoryMessage();
+                            } else if (isBotTurn()) {
+                                setTimeout(aiMove, 500);
+                            }
+                        });
                     }
                 });
             } else {
-                // Invalid move, select new square if it has friendly piece
-                clearHighlights();
-                if (piece && piece.color === game.turn()) {
-                    selectedSquare = { row, col };
-                    highlightMoves(game.moves({ square, verbose: true }), selectedSquare);
+                const move = game.move(moveObj);
+                if (move) {
+                    const isCapture = move.flags.includes('c') || move.flags.includes('e');
+                    lastMove = { from, to: square };
+                    clearHighlights();
+                    animateMove(from, square, isCapture, () => {
+                        selectedSquare = null;
+                        renderBoard();
+                        if (game.game_over()) {
+                            displayVictoryMessage();
+                        } else if (isBotTurn()) {
+                            setTimeout(aiMove, 500);
+                        }
+                    });
                 } else {
-                    selectedSquare = null;
+                    clearHighlights();
+                    if (piece && piece.color === game.turn()) {
+                        selectedSquare = { row, col };
+                        highlightMoves(game.moves({ square, verbose: true }), selectedSquare);
+                    } else {
+                        selectedSquare = null;
+                    }
                 }
             }
         } else {
@@ -514,27 +581,21 @@
 
     function evaluatePosition(move) {
         let score = 0;
-        
-        // Basic piece values
         const pieceValues = { 'p': 1, 'n': 3, 'b': 3, 'r': 5, 'q': 9, 'k': 0 };
         
-        // Capture bonus
         if (move.captured) {
             score += pieceValues[move.captured] * 10;
         }
         
-        // Center control bonus
         const centerSquares = ['d4', 'd5', 'e4', 'e5'];
         if (centerSquares.includes(move.to)) {
             score += 2;
         }
         
-        // Check bonus
         if (move.flags.includes('+')) {
             score += 3;
         }
         
-        // Castling bonus
         if (move.flags.includes('k') || move.flags.includes('q')) {
             score += 5;
         }
@@ -543,7 +604,7 @@
     }
 
     function aiMove() {
-        if (game.game_over() || isAnimating) return;
+        if (game.game_over() || isAnimating || promotionDialog.style.display === 'block') return;
         if (!isBotTurn()) return;
 
         const botType = getCurrentBot();
@@ -556,14 +617,12 @@
                 break;
                 
             case 'BlitzBot (Aggressive)':
-                // Prioritize captures, checks, and attacks
                 const aggressiveMoves = moves.filter(m => 
                     m.flags.includes('c') || m.flags.includes('+') || m.flags.includes('#')
                 );
                 if (aggressiveMoves.length > 0) {
                     selectedMove = aggressiveMoves[Math.floor(Math.random() * aggressiveMoves.length)];
                 } else {
-                    // If no aggressive moves, prefer center control
                     const centerMoves = moves.filter(m => 
                         ['d4', 'd5', 'e4', 'e5', 'c4', 'c5', 'f4', 'f5'].includes(m.to)
                     );
@@ -574,26 +633,20 @@
                 break;
                 
             case 'GrandMaster (Strategic)':
-                // Use basic position evaluation
                 const scoredMoves = moves.map(move => ({
                     move,
                     score: evaluatePosition(move)
                 }));
                 scoredMoves.sort((a, b) => b.score - a.score);
-                
-                // Pick from top 3 moves with some randomness
                 const topMoves = scoredMoves.slice(0, Math.min(3, scoredMoves.length));
                 selectedMove = topMoves[Math.floor(Math.random() * topMoves.length)].move;
                 break;
                 
             case 'Gambit King (Risky)':
-                // Prefers sacrifices and risky moves
                 const riskyMoves = moves.filter(m => {
-                    // Prefer moves that sacrifice material for position
                     const pieceValues = { 'p': 1, 'n': 3, 'b': 3, 'r': 5, 'q': 9 };
                     const movingPiece = game.get(m.from);
                     if (movingPiece && pieceValues[movingPiece.type] >= 3) {
-                        // Moving valuable pieces to potentially dangerous squares
                         return Math.random() < 0.3;
                     }
                     return m.flags.includes('c') || m.flags.includes('+');
@@ -607,20 +660,17 @@
                 break;
                 
             case 'Fortress (Defensive)':
-                // Prioritize defensive moves and piece development
                 const defensiveMoves = moves.filter(m => {
-                    // Prefer moves that don't expose the king
                     const backRankMoves = ['a1', 'b1', 'c1', 'd1', 'e1', 'f1', 'g1', 'h1',
                                           'a8', 'b8', 'c8', 'd8', 'e8', 'f8', 'g8', 'h8'];
                     return backRankMoves.includes(m.to) || 
-                           m.flags.includes('k') || m.flags.includes('q') || // castling
-                           (m.piece === 'p' && Math.abs(m.from.charCodeAt(0) - m.to.charCodeAt(0)) === 0); // pawn pushes
+                           m.flags.includes('k') || m.flags.includes('q') || 
+                           (m.piece === 'p' && Math.abs(m.from.charCodeAt(0) - m.to.charCodeAt(0)) === 0);
                 });
                 
                 if (defensiveMoves.length > 0) {
                     selectedMove = defensiveMoves[Math.floor(Math.random() * defensiveMoves.length)];
                 } else {
-                    // If no defensive moves, just avoid captures when possible
                     const safeMoves = moves.filter(m => !m.flags.includes('c'));
                     selectedMove = safeMoves.length > 0 ? 
                         safeMoves[Math.floor(Math.random() * safeMoves.length)] :
@@ -629,9 +679,7 @@
                 break;
                 
             case 'Chaos Engine (Unpredictable)':
-                // Completely random with occasional brilliant moves
                 if (Math.random() < 0.1) {
-                    // 10% chance for a "brilliant" move (highest scored)
                     const brilliantMoves = moves.map(move => ({
                         move,
                         score: evaluatePosition(move)
@@ -639,17 +687,14 @@
                     brilliantMoves.sort((a, b) => b.score - a.score);
                     selectedMove = brilliantMoves[0].move;
                 } else {
-                    // 90% completely random
                     selectedMove = moves[Math.floor(Math.random() * moves.length)];
                 }
                 break;
                 
             case 'Endgame Expert (Patient)':
-                // Focus on king safety early, piece activity in endgame
                 const pieceCount = Object.values(game.board()).flat().filter(p => p).length;
                 
                 if (pieceCount <= 12) {
-                    // Endgame: activate king and create passed pawns
                     const endgameMoves = moves.filter(m => 
                         m.piece === 'k' || m.piece === 'p' || m.flags.includes('c')
                     );
@@ -657,7 +702,6 @@
                         endgameMoves[Math.floor(Math.random() * endgameMoves.length)] :
                         moves[Math.floor(Math.random() * moves.length)];
                 } else {
-                    // Opening/Middlegame: develop pieces and control center
                     const developmentMoves = moves.filter(m => 
                         m.piece === 'n' || m.piece === 'b' || 
                         m.flags.includes('k') || m.flags.includes('q') ||
@@ -676,8 +720,16 @@
         const from = selectedMove.from;
         const to = selectedMove.to;
         const isCapture = selectedMove.flags.includes('c') || selectedMove.flags.includes('e');
-        
-        game.move(selectedMove.san);
+        const isPawnPromotion = selectedMove.piece === 'p' && 
+            ((game.turn() === 'w' && to[1] === '8') || (game.turn() === 'b' && to[1] === '1'));
+
+        let promotion = 'q';
+        if (isPawnPromotion) {
+            const promotionOptions = ['q', 'r', 'b', 'n'];
+            promotion = promotionOptions[Math.floor(Math.random() * promotionOptions.length)];
+        }
+
+        game.move({ from, to, promotion });
         lastMove = { from, to };
         
         animateMove(from, to, isCapture, () => {
@@ -713,11 +765,12 @@
         selectedSquare = null;
         isAnimating = false;
         lastMove = null;
+        pendingMove = null;
         clearHighlights();
         renderBoard();
         victoryMessage.style.display = 'none';
+        promotionDialog.style.display = 'none';
 
-        // If AI plays white, do AI move immediately
         if (isBotTurn()) {
             setTimeout(aiMove, 800);
         }
