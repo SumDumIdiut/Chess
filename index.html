@@ -1,783 +1,149 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>Chess with Movement & AI</title>
-    <style>
-        body {
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
-            color: white;
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+  <meta charset="UTF-8" />
+  <title>Main Menu</title>
+  <style>
+    body {
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
 
-        .game-container {
-            display: flex;
-            gap: 30px;
-            align-items: flex-start;
-            margin-top: 20px;
-        }
+    #mainMenu {
+      background: linear-gradient(135deg, #2a2a4a, #1e1e3f);
+      padding: 40px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      animation: fadeIn 1s ease-in;
+      max-width: 1200px;
+      width: 100%;
+      margin: 40px auto;
+    }
 
-        .board-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+    #gameList {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+      width: 100%;
+    }
 
-        #menu {
-            background: linear-gradient(135deg, #2a2a4a, #1e1e3f);
-            padding: 20px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(10px);
-        }
+    .game-row {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      flex-wrap: nowrap;
+    }
 
-        select, button {
-            padding: 8px 12px;
-            border-radius: 8px;
-            border: none;
-            font-size: 16px;
-            margin: 0 5px;
-        }
+    .game-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #222244;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+      transition: transform 0.3s ease;
+      width: 250px;
+    }
 
-        button {
-            background: linear-gradient(135deg, #4caf50, #45a049);
-            color: white;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 10px rgba(76, 175, 80, 0.3);
-        }
+    .game-card:hover {
+      transform: scale(1.05);
+    }
 
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
-        }
+    .game-card h2 {
+      font-size: 28px;
+      margin: 0 0 12px 0;
+      background: linear-gradient(135deg, #4caf50, #45a049);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 2px 10px rgba(76, 175, 80, 0.3);
+    }
 
-        #board {
-            display: grid;
-            grid-template-columns: repeat(8, 80px);
-            grid-template-rows: repeat(8, 80px);
-            width: 640px;
-            height: 640px;
-            margin: 30px auto;
-            border: 4px solid #444;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            border-radius: 8px;
-            overflow: hidden;
-            position: relative;
-        }
+    .game-card img {
+      width: 200px;
+      height: 200px;
+      border-radius: 8px;
+      object-fit: cover;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
 
-        .square {
-            width: 80px;
-            height: 80px;
-            position: relative;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
+    .game-card button {
+      padding: 12px 24px;
+      border-radius: 8px;
+      border: none;
+      font-size: 20px;
+      background: linear-gradient(135deg, #4caf50, #45a049);
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 10px rgba(76, 175, 80, 0.3);
+    }
 
-        .light {
-            background-color: #f0d9b5;
-        }
+    .game-card button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+    }
 
-        .dark {
-            background-color: #b58863;
-        }
-
-        .piece {
-            width: 70%;
-            height: 70%;
-            object-fit: contain;
-            pointer-events: none;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
-            z-index: 10;
-        }
-
-        .piece.moving {
-            z-index: 20;
-            transform: translate(-50%, -50%) scale(1.1);
-            filter: drop-shadow(4px 4px 8px rgba(0, 0, 0, 0.5));
-        }
-
-        .selected {
-            background: linear-gradient(135deg, rgba(100, 149, 237, 0.4), rgba(138, 43, 226, 0.4));
-            box-shadow: inset 0 0 20px rgba(100, 149, 237, 0.3);
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { box-shadow: inset 0 0 20px rgba(100, 149, 237, 0.3); }
-            50% { box-shadow: inset 0 0 25px rgba(138, 43, 226, 0.4); }
-            100% { box-shadow: inset 0 0 20px rgba(100, 149, 237, 0.3); }
-        }
-
-        .possible-move {
-            position: relative;
-        }
-
-        .possible-move::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 20px;
-            height: 20px;
-            background: radial-gradient(circle, rgba(100, 149, 237, 0.8), rgba(138, 43, 226, 0.6));
-            border-radius: 50%;
-            z-index: 5;
-            animation: moveHint 2s infinite;
-        }
-
-        .possible-capture {
-            position: relative;
-            animation: captureGlow 1.5s infinite;
-        }
-
-        .possible-capture::before {
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, rgba(220, 20, 60, 0.4), rgba(255, 69, 0, 0.4));
-            border-radius: 0;
-            border: 3px solid rgba(220, 20, 60, 0.9);
-            box-sizing: border-box;
-            animation: captureRing 2s infinite;
-        }
-
-        .possible-capture::after {
-            content: '⚔️';
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            font-size: 16px;
-            z-index: 15;
-            animation: captureIcon 1s infinite;
-        }
-
-        @keyframes captureGlow {
-            0% { box-shadow: 0 0 5px rgba(220, 20, 60, 0.3); }
-            50% { box-shadow: 0 0 20px rgba(220, 20, 60, 0.6), 0 0 30px rgba(255, 69, 0, 0.4); }
-            100% { box-shadow: 0 0 5px rgba(220, 20, 60, 0.3); }
-        }
-
-        @keyframes captureRing {
-            0% { 
-                border-color: rgba(220, 20, 60, 0.9);
-                transform: scale(1);
-            }
-            50% { 
-                border-color: rgba(255, 69, 0, 1);
-                transform: scale(1.02);
-            }
-            100% { 
-                border-color: rgba(220, 20, 60, 0.9);
-                transform: scale(1);
-            }
-        }
-
-        @keyframes captureIcon {
-            0% { 
-                transform: scale(0.8) rotate(-5deg);
-                opacity: 0.7;
-            }
-            50% { 
-                transform: scale(1.2) rotate(5deg);
-                opacity: 1;
-            }
-            100% { 
-                transform: scale(0.8) rotate(-5deg);
-                opacity: 0.7;
-            }
-        }
-
-        @keyframes moveHint {
-            0% { 
-                transform: translate(-50%, -50%) scale(0.8);
-                opacity: 0.6;
-            }
-            50% { 
-                transform: translate(-50%, -50%) scale(1.2);
-                opacity: 1;
-            }
-            100% { 
-                transform: translate(-50%, -50%) scale(0.8);
-                opacity: 0.6;
-            }
-        }
-
-        .square:hover {
-            transform: scale(1.02);
-            filter: brightness(1.1);
-        }
-
-        #victoryMessage {
-            display: none;
-            font-size: 28px;
-            margin-top: 20px;
-            background: linear-gradient(135deg, #4caf50, #45a049);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            font-weight: bold;
-            text-shadow: 0 2px 10px rgba(76, 175, 80, 0.3);
-        }
-
-        .last-move-from {
-            background: linear-gradient(135deg, rgba(135, 206, 250, 0.3), rgba(100, 149, 237, 0.3));
-            box-shadow: inset 0 0 15px rgba(135, 206, 250, 0.4);
-        }
-
-        .last-move-to {
-            background: linear-gradient(135deg, rgba(135, 206, 250, 0.4), rgba(100, 149, 237, 0.4));
-            box-shadow: inset 0 0 20px rgba(135, 206, 250, 0.5);
-        }
-
-        .captured-piece {
-            animation: captureAnimation 0.6s ease-out;
-        }
-
-        .game-info {
-            margin: 20px;
-            font-size: 18px;
-            color: #ccc;
-        }
-
-        #promotionDialog {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: linear-gradient(135deg, #2a2a4a, #1e1e3f);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            z-index: 100;
-        }
-
-        #promotionDialog button {
-            margin: 5px;
-            width: 60px;
-            height: 60px;
-            font-size: 40px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-    </style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
 </head>
 <body>
+  <div id="mainMenu">
+    <div id="gameList"></div>
+  </div>
 
-<div id="menu">
-    <label>White:
-        <select id="white-select">
-            <option>Human</option>
-            <option>StonkFish (Random)</option>
-            <option>BlitzBot (Aggressive)</option>
-            <option>GrandMaster (Strategic)</option>
-            <option>Gambit King (Risky)</option>
-            <option>Fortress (Defensive)</option>
-            <option>Chaos Engine (Unpredictable)</option>
-            <option>Endgame Expert (Patient)</option>
-        </select>
-    </label>
-    <label>Black:
-        <select id="black-select">
-            <option>StonkFish (Random)</option>
-            <option>Human</option>
-            <option>BlitzBot (Aggressive)</option>
-            <option>GrandMaster (Strategic)</option>
-            <option>Gambit King (Risky)</option>
-            <option>Fortress (Defensive)</option>
-            <option>Chaos Engine (Unpredictable)</option>
-            <option>Endgame Expert (Patient)</option>
-        </select>
-    </label>
-    <button id="startBtn">Start Game</button>
-</div>
+  <script>
+    const games = [
+      { name: "Chess", thumbnail: "Chess_thumbnail.png", file: "Chess.html" },
+      { name: "Minesweeper", thumbnail: "Minesweeper_thumbnail.png", file: "Minesweeper.html" },
+    ];
 
-<div class="game-info">
-    <span id="turnIndicator">White to move</span>
-</div>
+    const gameList = document.getElementById('gameList');
 
-<div id="board"></div>
-<div id="victoryMessage"></div>
-<div id="promotionDialog">
-    <button data-promotion="q">♕</button>
-    <button data-promotion="r">♖</button>
-    <button data-promotion="b">♗</button>
-    <button data-promotion="n">♘</button>
-</div>
+    for (let i = 0; i < games.length; i += 4) {
+      const row = document.createElement('div');
+      row.className = 'game-row';
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-<script>
-    const boardEl = document.getElementById('board');
-    const startBtn = document.getElementById('startBtn');
-    const whiteSelect = document.getElementById('white-select');
-    const blackSelect = document.getElementById('black-select');
-    const victoryMessage = document.getElementById('victoryMessage');
-    const turnIndicator = document.getElementById('turnIndicator');
-    const promotionDialog = document.getElementById('promotionDialog');
+      for (let j = i; j < i + 4 && j < games.length; j++) {
+        const game = games[j];
 
-    let game = new Chess();
-    let selectedSquare = null;
-    let isAnimating = false;
-    let lastMove = null;
-    let pendingMove = null;
+        const card = document.createElement('div');
+        card.className = 'game-card';
 
-    function coordsToSquare(row, col) {
-        return String.fromCharCode(97 + col) + (8 - row);
-    }
+        const title = document.createElement('h2');
+        title.textContent = game.name;
 
-    function squareToCoords(sq) {
-        return {
-            row: 8 - parseInt(sq[1]),
-            col: sq.charCodeAt(0) - 97
+        const img = document.createElement('img');
+        img.src = game.thumbnail;
+        img.alt = `${game.name} Thumbnail`;
+
+        const button = document.createElement('button');
+        button.textContent = `Play`;
+        button.onclick = () => {
+          window.location.href = game.file;
         };
+
+        card.appendChild(title);
+        card.appendChild(img);
+        card.appendChild(button);
+        row.appendChild(card);
+      }
+
+      gameList.appendChild(row);
     }
-
-    function updateTurnIndicator() {
-        const turn = game.turn() === 'w' ? 'White' : 'Black';
-        const isBot = isBotTurn();
-        const botName = isBot ? getCurrentBot().split(' ')[0] : '';
-        turnIndicator.textContent = `${turn} to move${isBot ? ` (${botName} thinking...)` : ''}`;
-    }
-
-    function renderBoard() {
-        boardEl.innerHTML = '';
-        for (let r = 0; r < 8; r++) {
-            for (let c = 0; c < 8; c++) {
-                const squareDiv = document.createElement('div');
-                squareDiv.className = 'square ' + ((r + c) % 2 === 0 ? 'light' : 'dark');
-                squareDiv.dataset.row = r;
-                squareDiv.dataset.col = c;
-                const squareName = coordsToSquare(r, c);
-                squareDiv.dataset.square = squareName;
-
-                const piece = game.get(squareName);
-                if (piece) {
-                    const img = document.createElement('img');
-                    img.src = `data:image/svg+xml,${encodeURIComponent(getPieceSVG(piece.type, piece.color))}`;
-                    img.className = 'piece';
-                    squareDiv.appendChild(img);
-                }
-
-                squareDiv.addEventListener('click', () => onSquareClick(r, c));
-                boardEl.appendChild(squareDiv);
-            }
-        }
-        updateTurnIndicator();
-        showLastMove();
-    }
-
-    function getPieceSVG(type, color) {
-        const pieces = {
-            'p': color === 'w' ? '♙' : '♟',
-            'r': color === 'w' ? '♖' : '♜',
-            'n': color === 'w' ? '♘' : '♞',
-            'b': color === 'w' ? '♗' : '♝',
-            'q': color === 'w' ? '♕' : '♛',
-            'k': color === 'w' ? '♔' : '♚'
-        };
-        
-        return `<svg width="60" height="60" xmlns="http://www.w3.org/2000/svg">
-            <text x="30" y="45" text-anchor="middle" font-size="40" font-family="serif" 
-                  fill="${color === 'w' ? '#fff' : '#000'}" 
-                  stroke="${color === 'w' ? '#000' : '#fff'}" 
-                  stroke-width="1">${pieces[type]}</text>
-        </svg>`;
-    }
-
-    function clearHighlights() {
-        document.querySelectorAll('.square').forEach(sq => {
-            sq.classList.remove('selected', 'possible-move', 'possible-capture', 'last-move-from', 'last-move-to');
-        });
-    }
-
-    function showLastMove() {
-        if (lastMove) {
-            const fromCoords = squareToCoords(lastMove.from);
-            const toCoords = squareToCoords(lastMove.to);
-            
-            const fromSq = document.querySelector(`.square[data-row='${fromCoords.row}'][data-col='${fromCoords.col}']`);
-            const toSq = document.querySelector(`.square[data-row='${toCoords.row}'][data-col='${toCoords.col}']`);
-            
-            if (fromSq) fromSq.classList.add('last-move-from');
-            if (toSq) toSq.classList.add('last-move-to');
-        }
-    }
-
-    function highlightMoves(moves, selectedSquare) {
-        const selSq = document.querySelector(`.square[data-row='${selectedSquare.row}'][data-col='${selectedSquare.col}']`);
-        if (selSq) selSq.classList.add('selected');
-
-        moves.forEach(mv => {
-            const { row, col } = squareToCoords(mv.to);
-            const sq = document.querySelector(`.square[data-row='${row}'][data-col='${col}']`);
-            if (sq) {
-                if (mv.flags.includes('c') || mv.flags.includes('e')) {
-                    sq.classList.add('possible-capture');
-                } else {
-                    sq.classList.add('possible-move');
-                }
-            }
-        });
-    }
-
-    function animateCapture(capturedPiece, callback) {
-        if (capturedPiece) {
-            capturedPiece.classList.add('captured-piece');
-            setTimeout(callback, 600);
-        } else {
-            callback();
-        }
-    }
-
-    function animateMove(fromSquare, toSquare, isCapture, callback) {
-        if (isAnimating) return;
-        isAnimating = true;
-
-        const fromCoords = squareToCoords(fromSquare);
-        const toCoords = squareToCoords(toSquare);
-        
-        const fromEl = document.querySelector(`.square[data-row='${fromCoords.row}'][data-col='${fromCoords.col}']`);
-        const toEl = document.querySelector(`.square[data-row='${toCoords.row}'][data-col='${toCoords.col}']`);
-        const pieceEl = fromEl.querySelector('.piece');
-        const capturedPiece = toEl.querySelector('.piece');
-        
-        if (!pieceEl) {
-            isAnimating = false;
-            callback();
-            return;
-        }
-
-        if (isCapture && capturedPiece) {
-            animateCapture(capturedPiece, () => {
-                animatePieceMovement();
-            });
-        } else {
-            animatePieceMovement();
-        }
-
-        function animatePieceMovement() {
-            const deltaX = (toCoords.col - fromCoords.col) * 80;
-            const deltaY = (toCoords.row - fromCoords.row) * 80;
-
-            pieceEl.classList.add('moving');
-            pieceEl.style.transform = `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px)) scale(1.1)`;
-
-            setTimeout(() => {
-                isAnimating = false;
-                callback();
-            }, 400);
-        }
-    }
-
-    function isBotTurn() {
-        const turn = game.turn();
-        const currentPlayer = turn === 'w' ? whiteSelect.value : blackSelect.value;
-        return currentPlayer !== 'Human';
-    }
-
-    function getCurrentBot() {
-        const turn = game.turn();
-        const currentPlayer = turn === 'w' ? whiteSelect.value : blackSelect.value;
-        return currentPlayer;
-    }
-
-    function showPromotionDialog(color, move, callback) {
-        promotionDialog.style.display = 'block';
-        const buttons = promotionDialog.querySelectorAll('button');
-        
-        function onPromotionSelect(e) {
-            const promotion = e.target.dataset.promotion;
-            buttons.forEach(btn => btn.removeEventListener('click', onPromotionSelect));
-            promotionDialog.style.display = 'none';
-            callback(promotion);
-        }
-
-        buttons.forEach(btn => {
-            btn.innerHTML = getPieceSVG(btn.dataset.promotion, color).match(/<text[^>]*>([^<]*)<\/text>/)[1];
-            btn.addEventListener('click', onPromotionSelect);
-        });
-    }
-
-    function onSquareClick(row, col) {
-        if (game.game_over() || isAnimating || promotionDialog.style.display === 'block') return;
-
-        const square = coordsToSquare(row, col);
-        const piece = game.get(square);
-
-        if (isBotTurn()) return;
-
-        if (selectedSquare) {
-            const from = coordsToSquare(selectedSquare.row, selectedSquare.col);
-            const moveObj = { from, to: square };
-
-            const isPawnPromotion = game.get(from)?.type === 'p' && 
-                ((game.turn() === 'w' && square[1] === '8') || (game.turn() === 'b' && square[1] === '1'));
-
-            if (isPawnPromotion) {
-                pendingMove = moveObj;
-                showPromotionDialog(game.turn(), moveObj, (promotion) => {
-                    moveObj.promotion = promotion;
-                    const move = game.move(moveObj);
-                    if (move) {
-                        const isCapture = move.flags.includes('c') || move.flags.includes('e');
-                        lastMove = { from, to: square };
-                        clearHighlights();
-                        animateMove(from, square, isCapture, () => {
-                            selectedSquare = null;
-                            renderBoard();
-                            if (game.game_over()) {
-                                displayVictoryMessage();
-                            } else if (isBotTurn()) {
-                                setTimeout(aiMove, 500);
-                            }
-                        });
-                    }
-                });
-            } else {
-                const move = game.move(moveObj);
-                if (move) {
-                    const isCapture = move.flags.includes('c') || move.flags.includes('e');
-                    lastMove = { from, to: square };
-                    clearHighlights();
-                    animateMove(from, square, isCapture, () => {
-                        selectedSquare = null;
-                        renderBoard();
-                        if (game.game_over()) {
-                            displayVictoryMessage();
-                        } else if (isBotTurn()) {
-                            setTimeout(aiMove, 500);
-                        }
-                    });
-                } else {
-                    clearHighlights();
-                    if (piece && piece.color === game.turn()) {
-                        selectedSquare = { row, col };
-                        highlightMoves(game.moves({ square, verbose: true }), selectedSquare);
-                    } else {
-                        selectedSquare = null;
-                    }
-                }
-            }
-        } else {
-            if (piece && piece.color === game.turn()) {
-                selectedSquare = { row, col };
-                clearHighlights();
-                highlightMoves(game.moves({ square, verbose: true }), selectedSquare);
-            }
-        }
-    }
-
-    function evaluatePosition(move) {
-        let score = 0;
-        const pieceValues = { 'p': 1, 'n': 3, 'b': 3, 'r': 5, 'q': 9, 'k': 0 };
-        
-        if (move.captured) {
-            score += pieceValues[move.captured] * 10;
-        }
-        
-        const centerSquares = ['d4', 'd5', 'e4', 'e5'];
-        if (centerSquares.includes(move.to)) {
-            score += 2;
-        }
-        
-        if (move.flags.includes('+')) {
-            score += 3;
-        }
-        
-        if (move.flags.includes('k') || move.flags.includes('q')) {
-            score += 5;
-        }
-        
-        return score;
-    }
-
-    function aiMove() {
-        if (game.game_over() || isAnimating || promotionDialog.style.display === 'block') return;
-        if (!isBotTurn()) return;
-
-        const botType = getCurrentBot();
-        const moves = game.moves({ verbose: true });
-        let selectedMove;
-
-        switch (botType) {
-            case 'StonkFish (Random)':
-                selectedMove = moves[Math.floor(Math.random() * moves.length)];
-                break;
-                
-            case 'BlitzBot (Aggressive)':
-                const aggressiveMoves = moves.filter(m => 
-                    m.flags.includes('c') || m.flags.includes('+') || m.flags.includes('#')
-                );
-                if (aggressiveMoves.length > 0) {
-                    selectedMove = aggressiveMoves[Math.floor(Math.random() * aggressiveMoves.length)];
-                } else {
-                    const centerMoves = moves.filter(m => 
-                        ['d4', 'd5', 'e4', 'e5', 'c4', 'c5', 'f4', 'f5'].includes(m.to)
-                    );
-                    selectedMove = centerMoves.length > 0 ? 
-                        centerMoves[Math.floor(Math.random() * centerMoves.length)] :
-                        moves[Math.floor(Math.random() * moves.length)];
-                }
-                break;
-                
-            case 'GrandMaster (Strategic)':
-                const scoredMoves = moves.map(move => ({
-                    move,
-                    score: evaluatePosition(move)
-                }));
-                scoredMoves.sort((a, b) => b.score - a.score);
-                const topMoves = scoredMoves.slice(0, Math.min(3, scoredMoves.length));
-                selectedMove = topMoves[Math.floor(Math.random() * topMoves.length)].move;
-                break;
-                
-            case 'Gambit King (Risky)':
-                const riskyMoves = moves.filter(m => {
-                    const pieceValues = { 'p': 1, 'n': 3, 'b': 3, 'r': 5, 'q': 9 };
-                    const movingPiece = game.get(m.from);
-                    if (movingPiece && pieceValues[movingPiece.type] >= 3) {
-                        return Math.random() < 0.3;
-                    }
-                    return m.flags.includes('c') || m.flags.includes('+');
-                });
-                
-                if (riskyMoves.length > 0 && Math.random() < 0.7) {
-                    selectedMove = riskyMoves[Math.floor(Math.random() * riskyMoves.length)];
-                } else {
-                    selectedMove = moves[Math.floor(Math.random() * moves.length)];
-                }
-                break;
-                
-            case 'Fortress (Defensive)':
-                const defensiveMoves = moves.filter(m => {
-                    const backRankMoves = ['a1', 'b1', 'c1', 'd1', 'e1', 'f1', 'g1', 'h1',
-                                          'a8', 'b8', 'c8', 'd8', 'e8', 'f8', 'g8', 'h8'];
-                    return backRankMoves.includes(m.to) || 
-                           m.flags.includes('k') || m.flags.includes('q') || 
-                           (m.piece === 'p' && Math.abs(m.from.charCodeAt(0) - m.to.charCodeAt(0)) === 0);
-                });
-                
-                if (defensiveMoves.length > 0) {
-                    selectedMove = defensiveMoves[Math.floor(Math.random() * defensiveMoves.length)];
-                } else {
-                    const safeMoves = moves.filter(m => !m.flags.includes('c'));
-                    selectedMove = safeMoves.length > 0 ? 
-                        safeMoves[Math.floor(Math.random() * safeMoves.length)] :
-                        moves[Math.floor(Math.random() * moves.length)];
-                }
-                break;
-                
-            case 'Chaos Engine (Unpredictable)':
-                if (Math.random() < 0.1) {
-                    const brilliantMoves = moves.map(move => ({
-                        move,
-                        score: evaluatePosition(move)
-                    }));
-                    brilliantMoves.sort((a, b) => b.score - a.score);
-                    selectedMove = brilliantMoves[0].move;
-                } else {
-                    selectedMove = moves[Math.floor(Math.random() * moves.length)];
-                }
-                break;
-                
-            case 'Endgame Expert (Patient)':
-                const pieceCount = Object.values(game.board()).flat().filter(p => p).length;
-                
-                if (pieceCount <= 12) {
-                    const endgameMoves = moves.filter(m => 
-                        m.piece === 'k' || m.piece === 'p' || m.flags.includes('c')
-                    );
-                    selectedMove = endgameMoves.length > 0 ? 
-                        endgameMoves[Math.floor(Math.random() * endgameMoves.length)] :
-                        moves[Math.floor(Math.random() * moves.length)];
-                } else {
-                    const developmentMoves = moves.filter(m => 
-                        m.piece === 'n' || m.piece === 'b' || 
-                        m.flags.includes('k') || m.flags.includes('q') ||
-                        ['d4', 'd5', 'e4', 'e5'].includes(m.to)
-                    );
-                    selectedMove = developmentMoves.length > 0 ? 
-                        developmentMoves[Math.floor(Math.random() * developmentMoves.length)] :
-                        moves[Math.floor(Math.random() * moves.length)];
-                }
-                break;
-                
-            default:
-                selectedMove = moves[Math.floor(Math.random() * moves.length)];
-        }
-
-        const from = selectedMove.from;
-        const to = selectedMove.to;
-        const isCapture = selectedMove.flags.includes('c') || selectedMove.flags.includes('e');
-        const isPawnPromotion = selectedMove.piece === 'p' && 
-            ((game.turn() === 'w' && to[1] === '8') || (game.turn() === 'b' && to[1] === '1'));
-
-        let promotion = 'q';
-        if (isPawnPromotion) {
-            const promotionOptions = ['q', 'r', 'b', 'n'];
-            promotion = promotionOptions[Math.floor(Math.random() * promotionOptions.length)];
-        }
-
-        game.move({ from, to, promotion });
-        lastMove = { from, to };
-        
-        animateMove(from, to, isCapture, () => {
-            renderBoard();
-            if (game.game_over()) {
-                displayVictoryMessage();
-            } else if (isBotTurn()) {
-                setTimeout(aiMove, 500);
-            }
-        });
-    }
-
-    function displayVictoryMessage() {
-        let message = '';
-        if (game.in_checkmate()) {
-            const winner = game.turn() === 'w' ? 'Black' : 'White';
-            message = `${winner} wins by checkmate!`;
-        } else if (game.in_stalemate()) {
-            message = 'Game ends in stalemate!';
-        } else if (game.in_draw()) {
-            message = 'Game ends in a draw!';
-        }
-        
-        if (message) {
-            victoryMessage.textContent = message;
-            victoryMessage.style.display = 'block';
-        }
-        turnIndicator.textContent = 'Game Over';
-    }
-
-    startBtn.addEventListener('click', () => {
-        game.reset();
-        selectedSquare = null;
-        isAnimating = false;
-        lastMove = null;
-        pendingMove = null;
-        clearHighlights();
-        renderBoard();
-        victoryMessage.style.display = 'none';
-        promotionDialog.style.display = 'none';
-
-        if (isBotTurn()) {
-            setTimeout(aiMove, 800);
-        }
-    });
-
-    renderBoard();
-</script>
-
+  </script>
 </body>
 </html>
