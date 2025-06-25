@@ -106,6 +106,8 @@
   </div>
 
   <script>
+    const repoPrefix = "/Web-Games/";
+
     const games = [
       { name: "Chess", thumbnail: "Chess_thumbnail.png", file: "Chess.html" },
       { name: "Minesweeper", thumbnail: "Minesweeper_thumbnail.png", file: "Minesweeper.html" },
@@ -127,13 +129,13 @@
         title.textContent = game.name;
 
         const img = document.createElement('img');
-        img.src = game.thumbnail;
+        img.src = repoPrefix + game.thumbnail;  // add repo prefix here
         img.alt = `${game.name} Thumbnail`;
 
         const button = document.createElement('button');
         button.textContent = `Play`;
         button.onclick = () => {
-          window.location.href = game.file;
+          window.location.href = repoPrefix + game.file;  // and here
         };
 
         card.appendChild(title);
