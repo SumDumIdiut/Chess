@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tic Tac Toe</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #1e1e2f;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 40px;
+      margin-bottom: 20px;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+      gap: 10px;
+    }
+
+    select, button {
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: none;
+      outline: none;
+    }
+
+    select {
+      background: #2d2d44;
+      color: white;
+    }
+
+    button {
+      background: #6c63ff;
+      color: white;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #5a54d3;
+    }
+
+    .board-wrapper {
+      position: relative;
+      width: 310px;
+      height: 310px;
+      margin-bottom: 20px;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      grid-template-rows: repeat(3, 100px);
+      gap: 5px;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+
+    .cell {
+      background: #444;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      cursor: pointer;
+      transition: background 0.2s;
+      color: #fff;
+    }
+
+    .cell.x {
+      color: #4fc3f7;
+    }
+
+    .cell.o {
+      color: #ba68c8;
+    }
+
+    .cell:hover {
+      background: #555;
+    }
+
+    .cell.taken {
+      cursor: default;
+    }
+
+    #status {
+      font-size: 20px;
+      margin-bottom: 10px;
+      height: 24px;
+    }
+
+    #reset {
+      background: #f44336;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    #reset:hover {
+      background: #d32f2f;
+    }
+
+    .line {
+      position: absolute;
+      height: 5px;
+      background: #4fc3f7;
+      border-radius: 4px;
+      transform-origin: center center;
+      z-index: 2;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+
+  <div class="controls">
+    <select id="playerX">
+      <option value="human">Human</option>
+      <option value="bot">Bot</option>
+    </select>
+    <button id="start">VS</button>
+    <select id="playerO">
+      <option value="human">Human</option>
+      <option value="bot">Bot</option>
+    </select>
+  </div>
+
+  <div class="board-wrapper">
+    <div class="line" id="winLine"></div>
+    <div class="board" id="board"></div>
+  </div>
+
+  <div id="status"></div>
+  <button id="reset">Reset</button>
+
+  <script>
+    const board = document.getElementById("board");
+    const status = document.getElementById("status");
+    const resetBtn = document.getElementById("reset");
+    const startBtn = document.getElementById("start");
+    const playerXSelect = document.getElementById("playerX");
+    const playerOSelect = document.getElementById("playerO");
+    const winLine = document.getElementById("winLine");
+
+    let currentPlayer = "X";
+    let gameActive = false;
+    let cells = Array(9).fill("");
+    let players = { X: "human", O: "human" };
+
+    const winCombos = [
+      [0, 1, 2], // Row 1
+      [3, 4, 5], // Row 2
+      [6, 7, 8], // Row 3
+      [0, 3, 6], // Col 1
+      [1, 4, 7], // Col 2
+      [2, 5, 8], // Col 3
+      [0, 4, 8], // Diagonal \
+      [2, 4, 6]  // Diagonal /
+    ];
+
+    function renderBoard() {
+      board.innerHTML = "";
+      cells.forEach((cell, i) => {
+        const div = document.createElement("div");
+        div.classList.add("cell");
+        div.textContent = cell;
+        if (cell !== "") {
+          div.classList.add("taken");
+          div.classList.add(cell.toLowerCase());
+        }
+        div.addEventListener("click", () => handleClick(i));
+        board.appendChild(div);
+      });
+    }
+
+    function handleClick(index) {
+      if (!gameActive || cells[index] !== "" || players[currentPlayer] !== "human") return;
+      makeMove(index);
+    }
+
+    function makeMove(index) {
+      cells[index] = currentPlayer;
+      renderBoard();
+      if (checkWinner()) return;
+      currentPlayer = currentPlayer === "X" ? "O" : "X";
+      if (players[currentPlayer] === "bot") {
+        setTimeout(botMove, 300);
+      }
+    }
+
+    function checkWinner() {
+      for (let i = 0; i < winCombos.length; i++) {
+        const [a, b, c] = winCombos[i];
+        if (cells[a] && cells[a] === cells[b] && cells[a] === cells[c]) {
+          gameActive = false;
+          status.textContent = `${cells[a]} wins!`;
+          drawWinningLine(i, cells[a]);
+          return true;
+        }
+      }
+      if (!cells.includes("")) {
+        status.textContent = "It's a draw!";
+        return true;
+      }
+      status.textContent = `${currentPlayer}'s turn`;
+      return false;
+    }
+
+    function drawWinningLine(comboIndex, winner) {
+      const combo = winCombos[comboIndex];
+      const cells = document.querySelectorAll('.cell');
+      
+      // Get positions of winning cells
+      const firstCell = cells[combo[0]].getBoundingClientRect();
+      const lastCell = cells[combo[2]].getBoundingClientRect();
+      const boardRect = document.querySelector('.board-wrapper').getBoundingClientRect();
+      
+      // Calculate center points relative to board wrapper
+      const startX = firstCell.left + firstCell.width/2 - boardRect.left;
+      const startY = firstCell.top + firstCell.height/2 - boardRect.top;
+      const endX = lastCell.left + lastCell.width/2 - boardRect.left;
+      const endY = lastCell.top + lastCell.height/2 - boardRect.top;
+      
+      // Calculate line properties with extra length
+      const deltaX = endX - startX;
+      const deltaY = endY - startY;
+      const baseLength = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      const length = baseLength + 40; // Make line 40px longer
+      const angle = Math.atan2(deltaY, deltaX) * 180 / Math.PI;
+      
+      // Position the line (offset by 20px to center the extra length)
+      const offsetX = -20 * Math.cos(angle * Math.PI / 180);
+      const offsetY = -20 * Math.sin(angle * Math.PI / 180);
+      
+      // Set line color based on winner
+      const lineColor = winner === "X" ? "#4fc3f7" : "#ba68c8";
+      
+      // Position and style the line
+      winLine.style.display = "block";
+      winLine.style.width = length + "px";
+      winLine.style.left = (startX + offsetX) + "px";
+      winLine.style.top = (startY + offsetY) + "px";
+      winLine.style.backgroundColor = lineColor;
+      winLine.style.transform = `rotate(${angle}deg)`;
+      winLine.style.transformOrigin = "0 center";
+    }
+
+    function botMove() {
+      if (!gameActive || players[currentPlayer] !== "bot") return;
+      const empty = cells.map((v, i) => v === "" ? i : null).filter(v => v !== null);
+      const move = empty[Math.floor(Math.random() * empty.length)];
+      if (move !== undefined) {
+        makeMove(move);
+      }
+    }
+
+    function startGame() {
+      cells = Array(9).fill("");
+      renderBoard();
+      players.X = playerXSelect.value;
+      players.O = playerOSelect.value;
+      currentPlayer = "X";
+      gameActive = true;
+      winLine.style.display = "none";
+      status.textContent = "X's turn";
+      if (players[currentPlayer] === "bot") {
+        setTimeout(botMove, 300);
+      }
+    }
+
+    function resetGame() {
+      gameActive = false;
+      cells = Array(9).fill("");
+      status.textContent = "";
+      winLine.style.display = "none";
+      renderBoard();
+    }
+
+    startBtn.addEventListener("click", startGame);
+    resetBtn.addEventListener("click", resetGame);
+
+    renderBoard();
+  </script>
+</body>
+</html>
