@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Texas Hold'em Poker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #0a4e08;
+            background-image: url('https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/02cd8d28-edb4-406c-9bcd-f2559288e7a0.png');
+            background-size: cover;
+            background-attachment: fixed;
+            height: 100vh;
+            overflow: hidden;
+            color: white;
+        }
+        
+        .card {
+            width: 80px;
+            height: 120px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0 -15px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+        }
+        
+        .card-back {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            background-image: url('https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/1bbb1dad-f184-481a-982f-50dea11fc871.png');
+            background-size: cover;
+            color: transparent;
+        }
+        
+        .card-red {
+            color: #e74c3c;
+        }
+        
+        .card-black {
+            color: #2c3e50;
+        }
+        
+        .card-suit {
+            position: absolute;
+            font-size: 14px;
+            bottom: 5px;
+            right: 5px;
+        }
+        
+        .pot-display {
+            background-color: rgba(0,0,0,0.7);
+            border: 2px solid gold;
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            box-shadow: 0 0 20px rgba(255,215,0,0.5);
+        }
+        
+        .player-area {
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 15px;
+            padding: 15px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .player-area.active {
+            box-shadow: 0 0 25px rgba(255,215,0,0.7);
+            border: 2px solid gold;
+        }
+        
+        .chip {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            box-shadow: inset 0 -3px 6px rgba(0,0,0,0.3);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+        
+        .chip-xs {
+            width: 20px;
+            height: 20px;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center">
+    <div class="relative w-full max-w-4xl mx-auto">
+        <!-- Poker Table -->
+        <div class="relative w-full aspect-[2/1] bg-green-900 rounded-full border-8 border-brown-800 shadow-xl flex items-center justify-center">
+            <!-- Center Pot Display -->
+            <div class="absolute pot-display">
+                <span class="text-xs text-gold-300">POT</span>
+                <span class="text-2xl font-bold text-white" id="pot-amount">$0</span>
+            </div>
+            
+            <!-- Community Cards -->
+            <div class="absolute flex" id="community-cards">
+                <!-- Cards will be placed here by JS -->
+            </div>
+            
+            <!-- Dealer Button -->
+            <div class="absolute w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white font-bold shadow-md left-1/2 -translate-x-1/2 -translate-y-12" id="dealer-button">
+                <span>D</span>
+            </div>
+            
+            <!-- Players -->
+            <div class="absolute player-area left-1/4 -translate-x-1/2 bottom-5" id="player-1">
+                <div class="flex space-x-1 mb-2">
+                    <div class="chip bg-blue-500 text-white">1</div>
+                    <div class="chip bg-red-500 text-white">5</div>
+                    <div class="chip bg-green-500 text-white">25</div>
+                </div>
+                <div class="flex mb-2" id="player-1-cards">
+                    <div class="card card-back"></div>
+                    <div class="card card-back"></div>
+                </div>
+                <div class="text-center">
+                    <h3 class="font-bold">Player 1</h3>
+                    <p>$<span id="player-1-chips">1000</span></p>
+                </div>
+            </div>
+            
+            <div class="absolute player-area right-1/4 translate-x-1/2 bottom-5" id="player-2">
+                <div class="flex space-x-1 mb-2">
+                    <div class="chip bg-blue-500 text-white">1</div>
+                    <div class="chip bg-red-500 text-white">5</div>
+                    <div class="chip bg-green-500 text-white">25</div>
+                </div>
+                <div class="flex mb-2" id="player-2-cards">
+                    <div class="card card-back"></div>
+                    <div class="card card-back"></div>
+                </div>
+                <div class="text-center">
+                    <h3 class="font-bold">Player 2</h3>
+                    <p>$<span id="player-2-chips">1000</span></p>
+                </div>
+            </div>
+            
+            <!-- Your Player Area -->
+            <div class="absolute player-area active left-1/2 -translate-x-1/2 -bottom-20" id="your-player">
+                <div class="flex space-x-1 mb-2" id="chip-buttons">
+                    <button class="chip bg-blue-500 text-white hover:bg-blue-600" onclick="bet(1)">1</button>
+                    <button class="chip bg-red-500 text-white hover:bg-red-600" onclick="bet(5)">5</button>
+                    <button class="chip bg-green-500 text-white hover:bg-green-600" onclick="bet(25)">25</button>
+                    <button class="chip bg-purple-500 text-white hover:bg-purple-600" onclick="bet(100)">100</button>
+                </div>
+                <div class="flex mb-2" id="your-cards">
+                    <div class="card card-back"></div>
+                    <div class="card card-back"></div>
+                </div>
+                <div class="flex space-x-2 justify-center mt-2">
+                    <button class="px-4 py-2 bg-red-600 rounded hover:bg-red-700" onclick="fold()">Fold</button>
+                    <button class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700" onclick="check()">Check</button>
+                    <button class="px-4 py-2 bg-green-600 rounded hover:bg-green-700" onclick="call()">Call</button>
+                    <button class="px-4 py-2 bg-yellow-600 rounded hover:bg-yellow-700" onclick="raise()">Raise</button>
+                </div>
+                <div class="text-center mt-2">
+                    <h3 class="font-bold">You</h3>
+                    <p>$<span id="your-chips">1000</span></p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Game Controls -->
+        <div class="mt-8 text-center">
+            <button id="start-game" class="px-6 py-3 bg-green-700 rounded-lg font-bold hover:bg-green-800" onclick="startGame()">Start Game</button>
+        </div>
+        
+        <!-- Betting Controls -->
+        <div class="fixed bottom-0 left-0 right-0 bg-gray-900 p-4 hidden" id="bet-controls">
+            <div class="max-w-md mx-auto flex items-center">
+                <input type="number" class="flex-1 px-4 py-2 bg-gray-800 rounded-l focus:outline-none" id="bet-amount" min="1" value="5">
+                <button class="px-4 py-2 bg-green-700 rounded-r hover:bg-green-800" onclick="confirmBet()">Bet</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game state variables
+        let gameState = {
+            deck: [],
+            players: [
+                { chips: 1000, folded: false, cards: [], bet: 0 },
+                { chips: 1000, folded: false, cards: [], bet: 0 },
+                { chips: 1000, folded: false, cards: [], bet: 0 } // You are player 2
+            ],
+            communityCards: [],
+            pot: 0,
+            currentPlayer: 0,
+            dealerPosition: 0,
+            smallBlind: 5,
+            bigBlind: 10,
+            gameStarted: false
+        };
+
+        // Card representations
+        const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
+        const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+
+        // Initialize the deck
+        function initializeDeck() {
+            gameState.deck = [];
+            for (let suit of suits) {
+                for (let value of values) {
+                    gameState.deck.push({ suit, value });
+                }
+            }
+            shuffleDeck();
+        }
+
+        // Fisher-Yates shuffle algorithm
+        function shuffleDeck() {
+            for (let i = gameState.deck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [gameState.deck[i], gameState.deck[j]] = [gameState.deck[j], gameState.deck[i]];
+            }
+        }
+
+        // Deal cards to players
+        function dealCards() {
+            gameState.players.forEach(player => {
+                player.cards = [];
+                player.folded = false;
+                player.bet = 0;
+            });
+            
+            gameState.communityCards = [];
+            
+            // Deal 2 cards to each player
+            for (let i = 0; i < 2; i++) {
+                for (let player of gameState.players) {
+                    player.cards.push(gameState.deck.pop());
+                }
+            }
+            
+            // Update UI
+            updateGameUI();
+            
+            // Start betting round
+            startBettingRound();
+        }
+
+        // Start a betting round
+        function startBettingRound() {
+            // Reset bets for new round
+            gameState.players.forEach(player => player.bet = 0);
+            
+            // Activate next player
+            gameState.currentPlayer = (gameState.currentPlayer + 1) % gameState.players.length;
+            highlightCurrentPlayer();
+            
+            // For simplicity, AI will always call/check
+            if (gameState.currentPlayer !== 2) {
+                setTimeout(() => {
+                    const callAmount = Math.max(...gameState.players.map(p => p.bet));
+                    gameState.players[gameState.currentPlayer].bet = callAmount;
+                    gameState.players[gameState.currentPlayer].chips -= callAmount;
+                    gameState.pot += callAmount;
+                    
+                    gameState.currentPlayer = (gameState.currentPlayer + 1) % gameState.players.length;
+                    highlightCurrentPlayer();
+                    
+                    updateGameUI();
+                }, 1000);
+            }
+        }
+
+        // Move dealer button
+        function moveDealerButton() {
+            gameState.dealerPosition = (gameState.dealerPosition + 1) % gameState.players.length;
+            // In a real game, we'd move the visual dealer button
+        }
+
+        // Start the game
+        function startGame() {
+            document.getElementById('start-game').classList.add('hidden');
+            gameState.gameStarted = true;
+            initializeDeck();
+            dealCards();
+        }
+
+        // Player actions
+        function fold() {
+            if (gameState.currentPlayer === 2 && gameState.gameStarted) {
+                gameState.players[2].folded = true;
+                setTimeout(() => {
+                    // End hand
+                    setTimeout(() => {
+                        dealCards();
+                    }, 2000);
+                }, 500);
+                updateGameUI();
+            }
+        }
+
+        function check() {
+            if (gameState.currentPlayer === 2 && gameState.gameStarted) {
+                // Only allow check if no bet has been made this round
+                const currentBet = Math.max(...gameState.players.map(p => p.bet));
+                if (currentBet <= gameState.players[2].bet) {
+                    gameState.currentPlayer = (gameState.currentPlayer + 1) % gameState.players.length;
+                    highlightCurrentPlayer();
+                    
+                    // Simulate other players
+                    setTimeout(() => {
+                        simulateAI();
+                    }, 1000);
+                }
+            }
+        }
+
+        function call() {
+            if (gameState.currentPlayer === 2 && gameState.gameStarted) {
+                const callAmount = Math.max(...gameState.players.map(p => p.bet));
+                const difference = callAmount - gameState.players[2].bet;
+                
+                if (gameState.players[2].chips >= difference) {
+                    gameState.players[2].bet = callAmount;
+                    gameState.players[2].chips -= difference;
+                    gameState.pot += difference;
+                    
+                    gameState.currentPlayer = (gameState.currentPlayer + 1) % gameState.players.length;
+                    highlightCurrentPlayer();
+                    
+                    setTimeout(() => {
+                        simulateAI();
+                    }, 1000);
+                    
+                    updateGameUI();
+                }
+            }
+        }
+
+        function raise() {
+            const betControls = document.getElementById('bet-controls');
+            betControls.classList.remove('hidden');
+        }
+
+        function bet(amount) {
+            if (gameState.currentPlayer === 2 && gameState.gameStarted) {
+                if (gameState.players[2].chips >= amount) {
+                    gameState.players[2].bet += amount;
+                    gameState.players[2].chips -= amount;
+                    gameState.pot += amount;
+                    
+                    gameState.currentPlayer = (gameState.currentPlayer + 1) % gameState.players.length;
+                    highlightCurrentPlayer();
+                    
+                    setTimeout(() => {
+                        simulateAI();
+                    }, 1000);
+                    
+                    updateGameUI();
+                }
+            }
+        }
+
+        function confirmBet() {
+            const betInput = document.getElementById('bet-amount');
+            const amount = parseInt(betInput.value);
+            bet(amount);
+            document.getElementById('bet-controls').classList.add('hidden');
+        }
+
+        // Simulate AI players
+        function simulateAI() {
+            // Simple AI logic - just calls/checks
+            const callAmount = Math.max(...gameState.players.map(p => p.bet));
+            gameState.players[gameState.currentPlayer].bet = callAmount;
+            gameState.players[gameState.currentPlayer].chips -= callAmount - gameState.players[gameState.currentPlayer].bet;
+            gameState.pot += callAmount - gameState.players[gameState.currentPlayer].bet;
+            
+            gameState.currentPlayer = (gameState.currentPlayer + 1) % gameState.players.length;
+            highlightCurrentPlayer();
+            
+            updateGameUI();
+        }
+
+        // Highlight current player
+        function highlightCurrentPlayer() {
+            document.querySelectorAll('.player-area').forEach(el => el.classList.remove('active'));
+            if (gameState.currentPlayer === 2) {
+                document.getElementById('your-player').classList.add('active');
+            }
+        }
+
+        // Update game UI
+        function updateGameUI() {
+            // Update pot
+            document.getElementById('pot-amount').textContent = `$${gameState.pot}`;
+            
+            // Update player chips
+            document.getElementById('player-1-chips').textContent = gameState.players[0].chips;
+            document.getElementById('player-2-chips').textContent = gameState.players[1].chips;
+            document.getElementById('your-chips').textContent = gameState.players[2].chips;
+            
+            // Update player cards (for testing, we'll just show text)
+            if (gameState.gameStarted) {
+                document.getElementById('your-cards').innerHTML = '';
+                gameState.players[2].cards.forEach(card => {
+                    const cardEl = document.createElement('div');
+                    cardEl.className = `card card-${card.suit === 'hearts' || card.suit === 'diamonds' ? 'red' : 'black'}`;
+                    cardEl.textContent = card.value;
+                    
+                    const suitEl = document.createElement('div');
+                    suitEl.className = 'card-suit';
+                    suitEl.textContent = getSuitSymbol(card.suit);
+                    cardEl.appendChild(suitEl);
+                    
+                    document.getElementById('your-cards').appendChild(cardEl);
+                });
+            }
+        }
+
+        // Get suit symbol
+        function getSuitSymbol(suit) {
+            switch(suit) {
+                case 'hearts': return '♥';
+                case 'diamonds': return '♦';
+                case 'clubs': return '♣';
+                case 'spades': return '♠';
+                default: return '';
+            }
+        }
+
+        // Initialize the game UI
+        document.addEventListener('DOMContentLoaded', () => {
+            highlightCurrentPlayer();
+        });
+    </script>
+</body>
+</html>
+
