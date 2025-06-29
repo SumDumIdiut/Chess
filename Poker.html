@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate Poker Game</title>
+    <title>Poker</title>
     <style>
         * {
             margin: 0;
@@ -45,27 +45,33 @@
             backdrop-filter: blur(10px);
             border: 1px solid rgba(139, 92, 246, 0.3);
             animation: fadeIn 1s ease-out;
+            min-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         .game-modes {
             display: flex;
-            gap: 20px;
+            gap: 60px;
             justify-content: center;
             flex-wrap: wrap;
-            margin-bottom: 30px;
+            margin-bottom: 60px;
+            margin-top: 120px;
         }
 
         .mode-btn {
-            padding: 20px 40px;
-            font-size: 1.3em;
+            padding: 50px 100px;
+            font-size: 2.5em;
             background: linear-gradient(145deg, #3b82f6, #8b5cf6);
             color: white;
             border: none;
-            border-radius: 15px;
+            border-radius: 30px;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
+            box-shadow: 0 12px 32px rgba(59, 130, 246, 0.4);
             font-weight: bold;
+            margin: 30px 0;
         }
 
         .mode-btn:hover {
@@ -103,17 +109,51 @@
             color: white;
             outline: none;
         }
+        /* Custom styled checkbox for blinds */
+        .blind-checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1em;
+            color: #8b5cf6;
+            margin-bottom: 8px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .blind-checkbox-label input[type="checkbox"] {
+            accent-color: #8b5cf6;
+            width: 20px;
+            height: 20px;
+            margin-right: 6px;
+            border-radius: 6px;
+            border: 2px solid #8b5cf6;
+            background: rgba(30, 27, 75, 0.7);
+            cursor: pointer;
+        }
+        .blind-checkbox-label .custom-checkbox {
+            display: none;
+        }
 
         .lobby-screen {
             display: none;
             animation: fadeIn 0.8s ease-out;
+            min-height: 100vh;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 0;
         }
 
         .lobby-container {
             display: grid;
             grid-template-columns: 300px 1fr 300px;
             gap: 20px;
+            width: 100vw;
             min-height: 500px;
+            box-sizing: border-box;
+            background: rgba(30, 27, 75, 0.5);
+            border-radius: 0 0 30px 30px;
         }
 
         .lobby-panel {
@@ -302,20 +342,26 @@
         }
 
         .card {
-            width: 60px;
-            height: 84px;
+            width: 80px;
+            height: 112px;
             background: white;
             border: 2px solid #333;
-            border-radius: 8px;
+            border-radius: 10px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             align-items: center;
             font-weight: bold;
-            font-size: 0.9em;
-            padding: 4px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            font-size: 1.2em;
+            padding: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             transition: transform 0.3s ease;
+        }
+        .community-cards .card {
+            width: 160px;
+            height: 220px;
+            font-size: 2.5em;
+            padding: 24px;
         }
 
         .card:hover {
@@ -507,9 +553,7 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>Ultimate Poker</h1>
-        </div>
+        <!-- Removed header title as requested -->
 
         <!-- Menu Screen -->
         <div id="menuScreen" class="menu-screen">
@@ -517,7 +561,6 @@
                 <button class="mode-btn" onclick="startOfflineGame()">Play Offline</button>
                 <button class="mode-btn" onclick="showOnlineSetup()">Play Online</button>
             </div>
-
             <div id="onlineSetup" class="online-setup">
                 <div class="input-group">
                     <label for="playerName">Your Name</label>
@@ -555,6 +598,18 @@
                             <option value="omaha">Omaha</option>
                             <option value="five-card-draw">Five Card Draw</option>
                         </select>
+                    </div>
+                    <div class="input-group" id="blindOptionsGroup" style="margin-bottom: 10px;">
+                        <label class="blind-checkbox-label">
+                            <input type="checkbox" id="enableSmallBlind" checked>
+                            <span class="custom-checkbox"></span>
+                            Enable Small Blind
+                        </label>
+                        <label class="blind-checkbox-label">
+                            <input type="checkbox" id="enableBigBlind" checked>
+                            <span class="custom-checkbox"></span>
+                            Enable Big Blind
+                        </label>
                     </div>
                     <button class="add-bot-btn" onclick="addBot()">Add Bot</button>
                     <button id="startGameBtn" class="start-game-btn" onclick="startOnlineGame()">Start Game</button>
@@ -597,10 +652,11 @@
                 <button class="control-btn call" onclick="playerAction('call')" id="callBtn" style="display: none;">Call</button>
                 <button class="control-btn raise" onclick="playerAction('raise')" id="raiseBtn" style="display: none;">Raise</button>
                 
-                <div class="bet-input">
-                    <label>Bet: $</label>
-                    <input type="number" id="betAmount" min="0" value="10">
+                <div class="bet-input" id="betInputContainer">
+                    <label for="betAmount" title="Enter the amount you want to raise by">Raise Amount:</label>
+                    <input type="number" id="betAmount" min="1" step="1" placeholder="Enter raise amount" value="10" style="width: 120px;">
                 </div>
+                <button class="control-btn" id="nextHandBtn" style="display:none; margin-left:20px; background: #10b981; color: white;">Next Hand</button>
             </div>
         </div>
     </div>
@@ -673,21 +729,125 @@
             document.getElementById('onlineSetup').style.display = 'block';
         }
 
+        // Global variable to track game polling interval
+        window.pokerGameSyncInterval = null;
+
         function joinOrCreateLobby() {
-            // Placeholder for online functionality
             const playerName = document.getElementById('playerName').value;
             if (!playerName) {
                 alert('Please enter your name.');
                 return;
             }
-            
+
+            // Store the current player's name globally
+            window.currentPlayerName = playerName;
+
+            const roomCodeInput = document.getElementById('roomCode').value.trim();
+            const isCreating = roomCodeInput === '';
+            const lobbyContainer = document.querySelector('.lobby-container');
+
             document.getElementById('menuScreen').style.display = 'none';
             document.getElementById('lobbyScreen').style.display = 'block';
+            // Auto-reload the page once to fix lobby layout
+            if (window.location.hash !== '#lobby') {
+                window.location.hash = '#lobby';
+                window.location.reload();
+                return;
+            }
+            // Force reflow and set grid columns/width after lobby is visible
+            setTimeout(() => {
+                if (isCreating) {
+                    lobbyContainer.style.gridTemplateColumns = '300px 1fr 300px';
+                } else {
+                    lobbyContainer.style.gridTemplateColumns = '300px 1fr';
+                }
+                lobbyContainer.style.width = '100vw';
+                lobbyContainer.style.boxSizing = 'border-box';
+                // Force reflow
+                void lobbyContainer.offsetHeight;
+            }, 0);
+
+            let roomData;
+            let roomCode;
+
+            if (isCreating) {
+                const newRoomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+                roomData = {
+                    code: newRoomCode,
+                    players: [{ name: playerName, isHost: true, chips: 1000 }],
+                    variant: 'texas-holdem'
+                };
+                roomCode = newRoomCode;
+                document.querySelector('.host-controls').style.display = 'flex';
+            } else {
+                roomData = JSON.parse(localStorage.getItem(roomCodeInput));
+                if (!roomData) {
+                    alert('Room not found!');
+                    backToMenu();
+                    return;
+                }
+                // Only add player if not already in the list
+                let existing = roomData.players.find(p => p.name === playerName);
+                if (!existing) {
+                    roomData.players.push({ name: playerName, isHost: false, chips: 1000 });
+                }
+                roomCode = roomCodeInput;
+                document.querySelector('.host-controls').style.display = 'none';
+            }
             
-            // Mock lobby state
-            const lobbyRoomCode = document.getElementById('roomCode').value || 'ABCD';
-            document.getElementById('lobbyRoomCode').textContent = lobbyRoomCode;
-            document.getElementById('playersList').innerHTML = `<li class="player-item host"><span>${playerName} (Host)</span><span class="player-status">Ready</span></li>`;
+            localStorage.setItem(roomData.code, JSON.stringify(roomData));
+            
+            // Periodically update the lobby from localStorage
+            setInterval(() => updateLobbyUI(roomData.code), 1000);
+
+            // All players poll for game start
+            if (window.lobbyGameStartInterval) clearInterval(window.lobbyGameStartInterval);
+            window.lobbyGameStartInterval = setInterval(() => {
+                const updatedRoomData = JSON.parse(localStorage.getItem(roomData.code));
+                if (updatedRoomData && updatedRoomData.gameStarted) {
+                    clearInterval(window.lobbyGameStartInterval);
+                    // Load game state and transition to game screen
+                    const storedGameState = JSON.parse(localStorage.getItem(`game_${roomData.code}`));
+                    // Use the globally stored player name
+                    const isYouName = window.currentPlayerName;
+                    gameState = storedGameState;
+                    const me = gameState.players.find(p => p.name === isYouName);
+                    if (me) {
+                        gameState.players.forEach(p => p.isYou = (p.name === me.name));
+                    }
+                    document.getElementById('lobbyScreen').style.display = 'none';
+                    document.getElementById('gameScreen').style.display = 'block';
+                    updateGameUI();
+                    showPlayerActions();
+
+                    // Start polling for game state sync for all players
+                    if (window.pokerGameSyncInterval) clearInterval(window.pokerGameSyncInterval);
+                    const roomCode = roomData.code;
+                    window.pokerGameSyncInterval = setInterval(() => {
+                        const storedGameState = JSON.parse(localStorage.getItem(`game_${roomCode}`));
+                        if (storedGameState) {
+                            // Set isYou for the current player
+                            const isYouName = window.currentPlayerName;
+                            storedGameState.players.forEach(p => p.isYou = (p.name === isYouName));
+                            // If game is over, return to menu
+                            if (storedGameState.gameOver) {
+                                clearInterval(window.pokerGameSyncInterval);
+                                setTimeout(() => {
+                    document.getElementById('gameScreen').style.display = 'none';
+                                    document.getElementById('lobbyScreen').style.display = 'block';
+                                }, 1000);
+                                return;
+                            }
+                            // Only update if state actually changed
+                            if (JSON.stringify(gameState) !== JSON.stringify(storedGameState)) {
+                                gameState = storedGameState;
+                                updateGameUI();
+                                showPlayerActions();
+                            }
+                        }
+                    }, 500);
+                }
+            }, 1000);
         }
 
         function copyRoomCode() {
@@ -698,29 +858,99 @@
         }
 
         function addBot() {
-            // Placeholder
-            const botName = `Bot ${Math.floor(Math.random() * 100)}`;
-            const playerItem = document.createElement('li');
-            playerItem.className = 'player-item';
-            playerItem.innerHTML = `<span>${botName}</span><span class="player-status">Ready</span>`;
-            document.getElementById('playersList').appendChild(playerItem);
+            const roomCode = document.getElementById('lobbyRoomCode').textContent;
+            let roomData = JSON.parse(localStorage.getItem(roomCode));
+            if (roomData) {
+                const botName = `Bot ${Math.floor(Math.random() * 100)}`;
+                roomData.players.push({ name: botName, isHost: false, isBot: true });
+                localStorage.setItem(roomCode, JSON.stringify(roomData));
+                updateLobbyUI(roomCode);
+            }
         }
 
         function onVariantChanged(variant) {
             gameState.variant = variant;
             document.getElementById('lobbyGameVariant').textContent = `Variant: ${variant}`;
+            // If in online mode and in a room, update the room data in localStorage
+            const roomCode = document.getElementById('lobbyRoomCode')?.textContent;
+            if (roomCode) {
+                let roomData = JSON.parse(localStorage.getItem(roomCode));
+                if (roomData) {
+                    roomData.variant = variant;
+                    localStorage.setItem(roomCode, JSON.stringify(roomData));
+                }
+            }
         }
 
         function startOnlineGame() {
-            // This would normally be triggered by the host via server
-            document.getElementById('lobbyScreen').style.display = 'none';
-            // For demo, we'll just start an offline-style game
-            startOfflineGame();
+            const roomCode = document.getElementById('lobbyRoomCode').textContent;
+            let roomData = JSON.parse(localStorage.getItem(roomCode));
+            if (!roomData) {
+                alert('Could not start game. Room data not found.');
+                return;
+            }
+
+            // Use the globally stored player name
+            const currentPlayerName = window.currentPlayerName;
+            const isHost = roomData.players.find(p => p.name === currentPlayerName)?.isHost;
+
+            if (isHost) {
+                // Read blind settings from tickboxes in the lobby
+                const enableSmallBlind = document.getElementById('enableSmallBlind')?.checked;
+                const enableBigBlind = document.getElementById('enableBigBlind')?.checked;
+                roomData.smallBlind = enableSmallBlind ? 5 : 0;
+                roomData.bigBlind = enableBigBlind ? 10 : 0;
+                roomData.gameStarted = true;
+                localStorage.setItem(roomCode, JSON.stringify(roomData));
+                
+                // Host sets up the game state and saves it
+                // Use chips from last game state if available
+                let lastGameState = null;
+                try {
+                    lastGameState = JSON.parse(localStorage.getItem(`game_${roomCode}`));
+                } catch (e) { lastGameState = null; }
+                const initialPlayers = roomData.players.map(p => {
+                    // Always reset chips to 1000 for a new game
+                    return {
+                        ...p,
+                        chips: 1000,
+                        cards: [],
+                        bet: 0,
+                        isHuman: !p.isBot,
+                        isActive: true,
+                        hasFolded: false
+                    };
+                });
+
+                const deck = createDeck();
+                let cardsToDeal = 2;
+                initialPlayers.forEach(player => {
+                    for (let i = 0; i < cardsToDeal; i++) {
+                        player.cards.push(deck.pop());
+                    }
+                });
+
+                Object.assign(gameState, {
+                    players: initialPlayers,
+                    deck: deck,
+                    gameActive: true,
+                    mode: 'online',
+                    smallBlind: roomData.smallBlind ?? 5,
+                    bigBlind: roomData.bigBlind ?? 10
+                });
+
+                localStorage.setItem(`game_${roomCode}`, JSON.stringify(gameState));
+            }
+            // No need to poll here; all players already poll in joinOrCreateLobby
         }
 
         function startOfflineGame() {
             gameState.mode = 'offline';
-            
+            // Read blind settings from checkboxes
+            const enableSmallBlind = document.getElementById('enableSmallBlind')?.checked;
+            const enableBigBlind = document.getElementById('enableBigBlind')?.checked;
+            gameState.smallBlind = enableSmallBlind ? 5 : 0;
+            gameState.bigBlind = enableBigBlind ? 10 : 0;
             // Always add some bots in offline mode
             gameState.players = [{
                 name: 'You',
@@ -731,7 +961,6 @@
                 isActive: true,
                 hasFolded: false
             }];
-            
             // Add AI players
             const aiNames = ['Alice', 'Bob', 'Charlie', 'Diana'];
             for (let i = 0; i < 3; i++) {
@@ -745,7 +974,6 @@
                     hasFolded: false
                 });
             }
-            
             initializeGame();
             startGame();
         }
@@ -786,20 +1014,26 @@
             // Move dealer button
             gameState.dealerPosition = (gameState.dealerPosition + 1) % gameState.players.length;
 
+            // Use blinds from gameState if present, else default
+            const smallBlind = typeof gameState.smallBlind === 'number' ? gameState.smallBlind : 5;
+            const bigBlind = typeof gameState.bigBlind === 'number' ? gameState.bigBlind : 10;
+
             // Reset for new hand
             gameState.communityCards = [];
             gameState.deck = createDeck();
             gameState.pot = 0;
-            gameState.currentBet = gameState.bigBlind;
+            gameState.currentBet = bigBlind;
             gameState.currentStreet = 0; // Preflop
             gameState.lastRaiser = null;
+            gameState.lastRaiseAmount = bigBlind > 0 ? bigBlind : 1;
 
             // Reset players and deal cards
             gameState.players.forEach(player => {
                 player.cards = [];
                 player.bet = 0;
                 player.hasFolded = false;
-                player.hasActed = false; // Track if player has acted in the current round
+                player.hasActed = false;
+                player.hasRaised = false;
                 
                 let cardsToDeal = 2; // Texas Hold'em
                 for (let i = 0; i < cardsToDeal; i++) {
@@ -812,11 +1046,11 @@
             const bbIndex = (gameState.dealerPosition + 2) % gameState.players.length;
             
             const smallBlindPlayer = gameState.players[sbIndex];
-            smallBlindPlayer.bet = Math.min(gameState.smallBlind, smallBlindPlayer.chips);
+            smallBlindPlayer.bet = Math.min(smallBlind, smallBlindPlayer.chips);
             smallBlindPlayer.chips -= smallBlindPlayer.bet;
             
             const bigBlindPlayer = gameState.players[bbIndex];
-            bigBlindPlayer.bet = Math.min(gameState.bigBlind, bigBlindPlayer.chips);
+            bigBlindPlayer.bet = Math.min(bigBlind, bigBlindPlayer.chips);
             bigBlindPlayer.chips -= bigBlindPlayer.bet;
 
             gameState.pot = smallBlindPlayer.bet + bigBlindPlayer.bet;
@@ -847,10 +1081,12 @@
         function startBettingRound() {
             gameState.currentBet = 0;
             gameState.lastRaiser = null;
+            gameState.lastRaiseAmount = gameState.bigBlind > 0 ? gameState.bigBlind : 1;
             gameState.players.forEach(p => {
                 if (!p.hasFolded) {
                     p.bet = 0;
                     p.hasActed = false;
+                    p.hasRaised = false;
                 }
             });
 
@@ -885,8 +1121,11 @@
             const currentPlayer = gameState.players[gameState.currentPlayer];
             document.getElementById('foldBtn').style.display = 'inline-block';
             document.getElementById('callBtn').style.display = 'inline-block';
-            document.getElementById('raiseBtn').style.display = 'inline-block';
             
+            const raiseBtn = document.getElementById('raiseBtn');
+            raiseBtn.style.display = 'inline-block';
+            raiseBtn.disabled = currentPlayer.hasRaised;
+
             // If it's AI player's turn
             if (!currentPlayer.isHuman) {
                 setTimeout(() => aiPlayerAction(currentPlayer), 1500);
@@ -896,7 +1135,9 @@
         function aiPlayerAction(player) {
             // Simple AI logic for demonstration
             const actions = ['fold', 'call'];
-            if (gameState.currentBet === 0) {
+            if (gameState.currentBet === 0 && !player.hasRaised) {
+                actions.push('raise');
+            } else if (!player.hasRaised) {
                 actions.push('raise');
             }
             
@@ -907,11 +1148,34 @@
         function playerAction(action) {
             const currentPlayer = gameState.players[gameState.currentPlayer];
             if (!currentPlayer) return;
+            // Only allow the current human player to act in online mode
+            if (gameState.mode === 'online' && (!currentPlayer.isHuman || !currentPlayer.isYou)) return;
             currentPlayer.hasActed = true;
 
             if (action === 'fold') {
                 currentPlayer.hasFolded = true;
                 updateStatusMessage(`${currentPlayer.name} folded.`);
+                // If only one player remains, end hand immediately
+                const activePlayers = gameState.players.filter(p => !p.hasFolded);
+                if (activePlayers.length === 1) {
+                    const winner = activePlayers[0];
+                    winner.chips += gameState.pot;
+                    updateStatusMessage(`${winner.name} wins ${gameState.pot} as everyone else folded!`);
+                    updateGameUI(true);
+                    gameState.gameOver = true;
+                    if (gameState.mode === 'online') syncGameStateToStorage();
+                    setTimeout(() => {
+                        if (gameState.mode === 'online') updateLobbyCreditsFromGame();
+                        document.getElementById('gameScreen').style.display = 'none';
+                        document.getElementById('lobbyScreen').style.display = 'block';
+                        // For online, also clear the polling interval if it exists
+                        if (window.pokerGameSyncInterval) {
+                            clearInterval(window.pokerGameSyncInterval);
+                            window.pokerGameSyncInterval = null;
+                        }
+                    }, 4000);
+                    return;
+                }
             } else if (action === 'call') {
                 const amountToCall = gameState.currentBet - currentPlayer.bet;
                 if (amountToCall > 0) {
@@ -919,12 +1183,21 @@
                     currentPlayer.chips -= betAmount;
                     currentPlayer.bet += betAmount;
                     gameState.pot += betAmount;
-                    updateStatusMessage(`${currentPlayer.name} called $${betAmount}.`);
+                    updateStatusMessage(`${currentPlayer.name} called ${betAmount}.`);
                 } else {
                     updateStatusMessage(`${currentPlayer.name} checks.`);
                 }
             } else if (action === 'raise') {
-                const raiseAmount = parseInt(document.getElementById('betAmount').value);
+                // Only allow raise if it's the current human player's turn and input is present
+                let raiseAmount = NaN;
+                if (currentPlayer.isHuman && currentPlayer.isYou) {
+                    const betInput = document.getElementById('betAmount');
+                    raiseAmount = betInput ? parseInt(betInput.value) : NaN;
+                }
+                if (isNaN(raiseAmount) || raiseAmount <= 0) {
+                    alert('Please enter a valid raise amount.');
+                    return;
+                }
                 const amountToCall = gameState.currentBet - currentPlayer.bet;
                 const totalBet = amountToCall + raiseAmount;
 
@@ -932,17 +1205,35 @@
                     alert('You cannot bet more than your available chips!');
                     return;
                 }
-                if (raiseAmount < gameState.bigBlind) {
-                    alert(`Minimum raise is ${gameState.bigBlind}`);
+                // Determine minimum raise: difference between last raise and previous bet, or big blind, or 1
+                let minRaise;
+                if (gameState.bigBlind > 0) {
+                    minRaise = gameState.bigBlind;
+                } else if (typeof gameState.lastRaiseAmount === 'number' && gameState.lastRaiseAmount > 0) {
+                    minRaise = gameState.lastRaiseAmount;
+                } else {
+                    minRaise = 1;
+                }
+                if (raiseAmount < minRaise) {
+                    alert(`Minimum raise is ${minRaise}`);
                     return;
                 }
 
                 currentPlayer.chips -= totalBet;
                 currentPlayer.bet += totalBet;
                 gameState.pot += totalBet;
+                // Track the last raise amount for correct min raise logic
+                gameState.lastRaiseAmount = raiseAmount;
                 gameState.currentBet = currentPlayer.bet;
                 gameState.lastRaiser = gameState.currentPlayer;
-                updateStatusMessage(`${currentPlayer.name} raised to $${gameState.currentBet}.`);
+                currentPlayer.hasRaised = true;
+                // Reset hasActed for all players except the raiser
+                gameState.players.forEach((p, idx) => {
+                    if (idx !== gameState.currentPlayer && !p.hasFolded) {
+                        p.hasActed = false;
+                    }
+                });
+                updateStatusMessage(`${currentPlayer.name} raised to ${gameState.currentBet}.`);
             }
             
             // Check for winner by fold
@@ -950,9 +1241,28 @@
             if (activePlayers.length === 1) {
                 const winner = activePlayers[0];
                 winner.chips += gameState.pot;
-                updateStatusMessage(`${winner.name} wins $${gameState.pot} as everyone else folded!`);
+                updateStatusMessage(`${winner.name} wins ${gameState.pot} as everyone else folded!`);
                 updateGameUI(true);
-                setTimeout(dealNewHand, 4000);
+                // Mark game as over and sync for all in online mode
+                gameState.gameOver = true;
+                if (gameState.mode === 'online') syncGameStateToStorage();
+                setTimeout(() => {
+                    if (gameState.mode === 'online') {
+                        updateLobbyCreditsFromGame();
+                        // Reset gameStarted flag so a new game can be started
+                        const roomCode = document.getElementById('lobbyRoomCode')?.textContent;
+                        if (roomCode) {
+                            let roomData = JSON.parse(localStorage.getItem(roomCode));
+                            if (roomData) {
+                                roomData.gameStarted = false;
+                                localStorage.setItem(roomCode, JSON.stringify(roomData));
+                            }
+                        }
+                    }
+                    // Return to lobby instead of main menu
+                    document.getElementById('gameScreen').style.display = 'none';
+                    document.getElementById('lobbyScreen').style.display = 'block';
+                }, 4000);
                 return;
             }
 
@@ -973,6 +1283,16 @@
                 updateGameUI();
                 showPlayerActions();
             }
+            // Sync state for all in online mode
+            if (gameState.mode === 'online') syncGameStateToStorage();
+        }
+
+        // Write gameState to localStorage for online sync
+        function syncGameStateToStorage() {
+            const roomCode = document.getElementById('lobbyRoomCode')?.textContent;
+            if (roomCode) {
+                localStorage.setItem(`game_${roomCode}`, JSON.stringify(gameState));
+            }
         }
 
         function endHandShowdown() {
@@ -984,15 +1304,28 @@
                 // For now, a real hand evaluation is complex. We'll just pick a random winner.
                 const winner = activePlayers[Math.floor(Math.random() * activePlayers.length)];
                 winner.chips += gameState.pot;
-                updateStatusMessage(`${winner.name} wins the pot of $${gameState.pot}! A new hand will start shortly.`);
+                updateStatusMessage(`${winner.name} wins the pot of ${gameState.pot}!${gameState.mode === 'offline' ? ' Click Next Hand to play again.' : ' Returning to menu...'}`);
+                gameState.gameOver = true;
+                if (gameState.mode === 'online') syncGameStateToStorage();
+                if (gameState.mode === 'offline') {
+                    document.getElementById('nextHandBtn').style.display = 'inline-block';
+                } else {
+                    setTimeout(() => {
+                        if (gameState.mode === 'online') updateLobbyCreditsFromGame();
+                        // Return to lobby instead of main menu
+                        document.getElementById('gameScreen').style.display = 'none';
+                        document.getElementById('lobbyScreen').style.display = 'block';
+                    }, 4000);
+                }
             } else {
-                updateStatusMessage('No winners in showdown. A new hand will start shortly.');
+                updateStatusMessage('No winners in showdown. Returning to lobby...');
+                gameState.gameOver = true;
+                if (gameState.mode === 'online') syncGameStateToStorage();
+                setTimeout(() => {
+                    document.getElementById('gameScreen').style.display = 'none';
+                    document.getElementById('lobbyScreen').style.display = 'block';
+                }, 4000);
             }
-
-            gameState.pot = 0;
-
-            // Prepare for next hand
-            setTimeout(dealNewHand, 5000); // Start new hand after 5 seconds
         }
 
         function updateGameUI(showAllCards = false) {
@@ -1009,17 +1342,24 @@
             gameState.players.forEach((player, index) => {
                 const playerElement = document.createElement('div');
                 playerElement.className = `player ${player.hasFolded ? 'folded' : ''} ${index === gameState.currentPlayer ? 'active' : ''}`;
+                
+                let positionIndicator = '';
+                if (index === gameState.dealerPosition) positionIndicator = ' (D)';
+                if (gameState.smallBlind > 0 && index === (gameState.dealerPosition + 1) % gameState.players.length) positionIndicator = ' (SB)';
+                if (gameState.bigBlind > 0 && index === (gameState.dealerPosition + 2) % gameState.players.length) positionIndicator = ' (BB)';
+
+                // Show chip count next to name
                 playerElement.innerHTML = `
-                    <strong>${player.name}</strong><br>
-                    Chips: $${player.chips}<br>
-                    Bet: $${player.bet}<br>
+                    <strong>${player.name} (${player.chips})${positionIndicator}</strong><br>
+                    Bet: ${player.bet}<br>
                 `;
                 
-                // Show player's cards (face down for other players)
+                // Show player's cards
                 if (player.cards.length > 0) {
                     const cardsDiv = document.createElement('div');
                     cardsDiv.className = 'player-cards';
-                    const faceDown = !player.isHuman && !showAllCards;
+                    // Show cards if it's the current user, or if it's showdown
+                    const faceDown = !player.isYou && !showAllCards;
                     player.cards.forEach(card => {
                         cardsDiv.appendChild(createCard(card, faceDown));
                     });
@@ -1032,9 +1372,87 @@
             // Update pot and current bet
             document.getElementById('potAmount').textContent = gameState.pot;
             document.getElementById('currentBet').textContent = gameState.currentBet;
+
+            // Sync status message from gameState for all players
+            if (gameState.statusMessage) {
+                document.getElementById('statusMessage').textContent = gameState.statusMessage;
+            }
+
+            // Enable/disable bet input and action buttons for the current human player only
+            const betInput = document.getElementById('betAmount');
+            const betInputContainer = document.getElementById('betInputContainer');
+            const foldBtn = document.getElementById('foldBtn');
+            const callBtn = document.getElementById('callBtn');
+            const raiseBtn = document.getElementById('raiseBtn');
+            const nextHandBtn = document.getElementById('nextHandBtn');
+            if (
+                (gameState.mode === 'offline' && gameState.players[gameState.currentPlayer]?.isHuman) ||
+                (gameState.mode === 'online' && gameState.players[gameState.currentPlayer]?.isHuman && gameState.players[gameState.currentPlayer]?.isYou)
+            ) {
+                if (betInput) betInput.disabled = false;
+                if (betInputContainer) betInputContainer.style.display = '';
+                if (foldBtn) foldBtn.disabled = false;
+                if (callBtn) callBtn.disabled = false;
+                if (raiseBtn) raiseBtn.disabled = false;
+            } else {
+                if (betInput) betInput.disabled = true;
+                if (betInputContainer) betInputContainer.style.display = 'none';
+                if (foldBtn) foldBtn.disabled = true;
+                if (callBtn) callBtn.disabled = true;
+                if (raiseBtn) raiseBtn.disabled = true;
+            }
+            // Show Next Hand button if game is over in offline mode
+            if (nextHandBtn) {
+                if (gameState.mode === 'offline' && gameState.gameOver) {
+                    nextHandBtn.style.display = 'inline-block';
+                } else {
+                    nextHandBtn.style.display = 'none';
+                }
+            }
+        }
+
+        function updateLobbyUI(roomCode) {
+            const roomData = JSON.parse(localStorage.getItem(roomCode));
+            if (!roomData) return;
+
+            // Only update variant, do not overwrite gameState.players (to avoid losing chips info)
+            gameState.variant = roomData.variant;
+
+            document.getElementById('lobbyRoomCode').textContent = roomData.code;
+            document.getElementById('lobbyGameVariant').textContent = `Variant: ${roomData.variant}`;
+            // Also update the variant selector dropdown if present
+            const variantSelect = document.getElementById('variantSelect');
+            if (variantSelect && variantSelect.value !== roomData.variant) {
+                variantSelect.value = roomData.variant;
+            }
+
+            const playersList = document.getElementById('playersList');
+            playersList.innerHTML = ''; // Clear the list
+            
+            roomData.players.forEach(player => {
+                const playerItem = document.createElement('li');
+                playerItem.className = `player-item ${player.isHost ? 'host' : ''}`;
+                const hostLabel = player.isHost ? ' (Host)' : '';
+                playerItem.innerHTML = `<span>${player.name}${hostLabel}</span><span class="player-status">Ready</span>`;
+                playersList.appendChild(playerItem);
+            });
+
+            // Host-only Start Game button logic
+            const startGameBtn = document.getElementById('startGameBtn');
+            // Use the globally stored player name
+            const currentPlayerName = window.currentPlayerName;
+            const currentPlayer = roomData.players.find(p => p.name === currentPlayerName);
+            const isHost = currentPlayer && currentPlayer.isHost;
+            if (isHost) {
+                startGameBtn.style.display = 'block';
+                startGameBtn.disabled = roomData.players.length < 2;
+            } else {
+                startGameBtn.style.display = 'none';
+            }
         }
 
         function updateStatusMessage(message) {
+            gameState.statusMessage = message;
             document.getElementById('statusMessage').textContent = message;
         }
 
@@ -1047,7 +1465,46 @@
         // The game no longer starts automatically. The user must click the "Play Offline" button.
         document.addEventListener('DOMContentLoaded', () => {
             // The script is now much simpler and should not have issues loading.
+            // Always re-attach Next Hand button handler
+            function attachNextHandHandler() {
+                const nextHandBtn = document.getElementById('nextHandBtn');
+                if (nextHandBtn) {
+                    nextHandBtn.onclick = function() {
+                        if (gameState.mode === 'offline' && gameState.gameOver) {
+                            gameState.gameOver = false;
+                            document.getElementById('nextHandBtn').style.display = 'none';
+                            // Ensure gameActive is true for new hand
+                            gameState.gameActive = true;
+                            dealNewHand();
+                        }
+                    };
+                }
+            }
+            attachNextHandHandler();
+            // Also re-attach after every updateGameUI
+            const origUpdateGameUI = updateGameUI;
+            updateGameUI = function(...args) {
+                origUpdateGameUI.apply(this, args);
+                attachNextHandHandler();
+            };
         });
+
+        // Helper: Update lobby player credits from gameState after a hand and reset gameStarted
+        function updateLobbyCreditsFromGame() {
+            const roomCode = document.getElementById('lobbyRoomCode')?.textContent;
+            if (!roomCode) return;
+            let roomData = JSON.parse(localStorage.getItem(roomCode));
+            if (!roomData) return;
+            // Update chips for each player in the lobby from gameState
+            gameState.players.forEach(gp => {
+                const rp = roomData.players.find(rp => rp.name === gp.name);
+                if (rp) rp.chips = gp.chips;
+            });
+            // Reset gameStarted so a new game can be started
+            roomData.gameStarted = false;
+            localStorage.setItem(roomCode, JSON.stringify(roomData));
+            updateLobbyUI(roomCode);
+        }
     </script>
 </body>
 </html>
