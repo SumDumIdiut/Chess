@@ -29,6 +29,8 @@
       margin: 40px auto;
     }
 
+    /* Removed #menuImage styles */
+
     #gameList {
       display: flex;
       flex-direction: column;
@@ -102,11 +104,14 @@
 </head>
 <body>
   <div id="mainMenu">
+    <!-- Removed <img id="menuImage" /> -->
     <div id="gameList"></div>
   </div>
 
   <script>
-    const repoPrefix = "/Web-Games/";
+    const repoPrefix = "./";
+
+    // Removed logoPath and logo image setting code
 
     const games = [
       { name: "Chess", thumbnail: "Chess_thumbnail.png", file: "Chess.html" },
@@ -133,13 +138,13 @@
         title.textContent = game.name;
 
         const img = document.createElement('img');
-        img.src = repoPrefix + game.thumbnail;  // add repo prefix here
+        img.src = repoPrefix + game.thumbnail;
         img.alt = `${game.name} Thumbnail`;
 
         const button = document.createElement('button');
         button.textContent = `Play`;
         button.onclick = () => {
-          window.location.href = repoPrefix + game.file;  // and here
+          window.location.href = repoPrefix + game.file;
         };
 
         card.appendChild(title);
