@@ -419,9 +419,9 @@
         
         return `<svg width="60" height="60" xmlns="http://www.w3.org/2000/svg">
             <text x="30" y="45" text-anchor="middle" font-size="40" font-family="serif" 
-                  fill="${color === 'w' ? '#fff' : '#000'}" 
-                  stroke="${color === 'w' ? '#000' : '#fff'}" 
-                  stroke-width="1">${pieces[type]}</text>
+                fill="${color === 'w' ? '#FFFFFF' : '#000000'}">
+                ${pieces[type]}
+            </text>
         </svg>`;
     }
 
@@ -510,6 +510,7 @@
         return currentPlayer !== 'Human';
     }
 
+
     function getCurrentBot() {
         const turn = game.turn();
         const currentPlayer = turn === 'w' ? whiteSelect.value : blackSelect.value;
@@ -534,241 +535,118 @@
     }
 
     function onSquareClick(row, col) {
+        // Check if the game is over, if an animation is in progress, or if the promotion dialog is open
         if (game.game_over() || isAnimating || promotionDialog.style.display === 'block') return;
 
-        const square = coordsToSquare(row, col);
-        const piece = game.get(square);
+        const square = coordsToSquare(row, col); // Convert row and column to square notation
+        const piece = game.get(square); // Get the piece on the clicked square
 
+        // Prevent human interaction if it's the bot's turn
         if (isBotTurn()) return;
 
         if (selectedSquare) {
-            const from = coordsToSquare(selectedSquare.row, selectedSquare.col);
-            const moveObj = { from, to: square };
+            const from = coordsToSquare(selectedSquare.row, selectedSquare.col); // Get the selected square
+            const moveObj = { from, to: square }; // Create a move object
 
+            // Check for pawn promotion
             const isPawnPromotion = game.get(from)?.type === 'p' && 
                 ((game.turn() === 'w' && square[1] === '8') || (game.turn() === 'b' && square[1] === '1'));
 
             if (isPawnPromotion) {
-                pendingMove = moveObj;
+                pendingMove = moveObj; // Store the pending move
                 showPromotionDialog(game.turn(), moveObj, (promotion) => {
-                    moveObj.promotion = promotion;
-                    const move = game.move(moveObj);
+                    moveObj.promotion = promotion; // Set the promotion type
+                    const move = game.move(moveObj); // Execute the move
                     if (move) {
-                        const isCapture = move.flags.includes('c') || move.flags.includes('e');
-                        lastMove = { from, to: square };
-                        clearAllHighlightsAndState();
+                        const isCapture = move.flags.includes('c') || move.flags.includes('e'); // Check if it's a capture
+                        lastMove = { from, to: square }; // Store the last move
+                        clearAllHighlightsAndState(); // Clear highlights and state
                         animateMove(from, square, isCapture, () => {
-                            renderBoard();
+                            renderBoard(); // Render the board
                             if (game.game_over()) {
-                                displayVictoryMessage();
+                                displayVictoryMessage(); // Display victory message if game is over
                             } else if (isBotTurn()) {
-                                setTimeout(aiMove, 500);
+                                setTimeout(aiMove, 500); // Call aiMove after human move
                             }
                         });
                     } else {
-                        clearAllHighlightsAndState();
-                        renderBoard();
+                        clearAllHighlightsAndState(); // Clear highlights if move is invalid
+                        renderBoard(); // Render the board
                     }
                 });
             } else {
-                const move = game.move(moveObj);
+                const move = game.move(moveObj); // Execute the move
                 if (move) {
-                    const isCapture = move.flags.includes('c') || move.flags.includes('e');
-                    lastMove = { from, to: square };
-                    clearAllHighlightsAndState();
+                    const isCapture = move.flags.includes('c') || move.flags.includes('e'); // Check if it's a capture
+                    lastMove = { from, to: square }; // Store the last move
+                    clearAllHighlightsAndState(); // Clear highlights and state
                     animateMove(from, square, isCapture, () => {
-                        renderBoard();
+                        renderBoard(); // Render the board
                         if (game.game_over()) {
-                            displayVictoryMessage();
+                            displayVictoryMessage(); // Display victory message if game is over
                         } else if (isBotTurn()) {
-                            setTimeout(aiMove, 500);
+                            setTimeout(aiMove, 500); // Call aiMove after human move
                         }
                     });
                 } else {
-                    clearAllHighlightsAndState();
-                    if (piece && piece.color === game.turn()) {
-                        selectedSquare = { row, col };
-                        highlightMoves(game.moves({ square, verbose: true }), selectedSquare);
+                    clearAllHighlightsAndState(); // Clear highlights if move is invalid
+                    if (piece && piece.color === game.turn()) { // Check if the clicked piece belongs to the current player
+                        selectedSquare = { row, col }; // Set the selected square
+                        highlightMoves(game.moves({ square, verbose: true }), selectedSquare); // Highlight possible moves
                     }
-                    renderBoard();
+                    renderBoard(); // Render the board
                 }
             }
         } else {
-            clearAllHighlightsAndState();
-            if (piece && piece.color === game.turn()) {
-                selectedSquare = { row, col };
-                highlightMoves(game.moves({ square, verbose: true }), selectedSquare);
+            clearAllHighlightsAndState(); // Clear highlights if no square is selected
+            if (piece && piece.color === game.turn()) { // Check if the clicked piece belongs to the current player
+                selectedSquare = { row, col }; // Set the selected square
+                highlightMoves(game.moves({ square, verbose: true }), selectedSquare); // Highlight possible moves
             }
         }
-    }
-
-    function evaluatePosition(move) {
-        let score = 0;
-        const pieceValues = { 'p': 1, 'n': 3, 'b': 3, 'r': 5, 'q': 9, 'k': 0 };
-        
-        if (move.captured) {
-            score += pieceValues[move.captured] * 10;
-        }
-        
-        const centerSquares = ['d4', 'd5', 'e4', 'e5'];
-        if (centerSquares.includes(move.to)) {
-            score += 2;
-        }
-        
-        if (move.flags.includes('+')) {
-            score += 3;
-        }
-        
-        if (move.flags.includes('k') || move.flags.includes('q')) {
-            score += 5;
-        }
-        
-        return score;
     }
 
     function aiMove() {
         if (game.game_over() || isAnimating || promotionDialog.style.display === 'block') return;
-        if (!isBotTurn()) return;
 
-        const botType = getCurrentBot();
+        const turn = game.turn();
+        const currentPlayer = turn === 'w' ? whiteSelect.value : blackSelect.value;
+
+        if (currentPlayer === 'Human') return;
+
         const moves = game.moves({ verbose: true });
         let selectedMove;
 
-        switch (botType) {
-            case 'StonkFish (Random)':
-                selectedMove = moves[Math.floor(Math.random() * moves.length)];
-                break;
-                
-            case 'BlitzBot (Aggressive)':
-                const aggressiveMoves = moves.filter(m => 
-                    m.flags.includes('c') || m.flags.includes('+') || m.flags.includes('#')
-                );
-                if (aggressiveMoves.length > 0) {
-                    selectedMove = aggressiveMoves[Math.floor(Math.random() * aggressiveMoves.length)];
-                } else {
-                    const centerMoves = moves.filter(m => 
-                        ['d4', 'd5', 'e4', 'e5', 'c4', 'c5', 'f4', 'f5'].includes(m.to)
-                    );
-                    selectedMove = centerMoves.length > 0 ? 
-                        centerMoves[Math.floor(Math.random() * centerMoves.length)] :
-                        moves[Math.floor(Math.random() * moves.length)];
+        if (moves.length > 0) {
+            selectedMove = moves[Math.floor(Math.random() * moves.length)];
+            const fromSquare = selectedMove.from;
+            const toSquare = selectedMove.to;
+
+            game.move(selectedMove);
+            lastMove = { from: fromSquare, to: toSquare };
+            clearAllHighlightsAndState();
+
+            animateMove(fromSquare, toSquare, selectedMove.flags.includes('c') || selectedMove.flags.includes('e'), () => {
+                renderBoard();
+
+                if (game.game_over()) {
+                    displayVictoryMessage();
+                    return;
                 }
-                break;
-                
-            case 'GrandMaster (Strategic)':
-                const scoredMoves = moves.map(move => ({
-                    move,
-                    score: evaluatePosition(move)
-                }));
-                scoredMoves.sort((a, b) => b.score - a.score);
-                const topMoves = scoredMoves.slice(0, Math.min(3, scoredMoves.length));
-                selectedMove = topMoves[Math.floor(Math.random() * topMoves.length)].move;
-                break;
-                
-            case 'Gambit King (Risky)':
-                const riskyMoves = moves.filter(m => {
-                    const pieceValues = { 'p': 1, 'n': 3, 'b': 3, 'r': 5, 'q': 9 };
-                    const movingPiece = game.get(m.from);
-                    if (movingPiece && pieceValues[movingPiece.type] >= 3) {
-                        return Math.random() < 0.3;
-                    }
-                    return m.flags.includes('c') || m.flags.includes('+');
-                });
-                
-                if (riskyMoves.length > 0 && Math.random() < 0.7) {
-                    selectedMove = riskyMoves[Math.floor(Math.random() * riskyMoves.length)];
-                } else {
-                    selectedMove = moves[Math.floor(Math.random() * moves.length)];
+
+                const nextTurn = game.turn();
+                const nextPlayer = nextTurn === 'w' ? whiteSelect.value : blackSelect.value;
+                if (nextPlayer !== 'Human') {
+                    setTimeout(aiMove, 800);
                 }
-                break;
-                
-            case 'Fortress (Defensive)':
-                const defensiveMoves = moves.filter(m => {
-                    const backRankMoves = ['a1', 'b1', 'c1', 'd1', 'e1', 'f1', 'g1', 'h1',
-                                          'a8', 'b8', 'c8', 'd8', 'e8', 'f8', 'g8', 'h8'];
-                    return backRankMoves.includes(m.to) || 
-                           m.flags.includes('k') || m.flags.includes('q') || 
-                           (m.piece === 'p' && Math.abs(m.from.charCodeAt(0) - m.to.charCodeAt(0)) === 0);
-                });
-                
-                if (defensiveMoves.length > 0) {
-                    selectedMove = defensiveMoves[Math.floor(Math.random() * defensiveMoves.length)];
-                } else {
-                    const safeMoves = moves.filter(m => !m.flags.includes('c'));
-                    selectedMove = safeMoves.length > 0 ? 
-                        safeMoves[Math.floor(Math.random() * safeMoves.length)] :
-                        moves[Math.floor(Math.random() * moves.length)];
-                }
-                break;
-                
-            case 'Chaos Engine (Unpredictable)':
-                if (Math.random() < 0.1) {
-                    const brilliantMoves = moves.map(move => ({
-                        move,
-                        score: evaluatePosition(move)
-                    }));
-                    brilliantMoves.sort((a, b) => b.score - a.score);
-                    selectedMove = brilliantMoves[0].move;
-                } else {
-                    selectedMove = moves[Math.floor(Math.random() * moves.length)];
-                }
-                break;
-                
-            case 'Endgame Expert (Patient)':
-                const pieceCount = Object.values(game.board()).flat().filter(p => p).length;
-                
-                if (pieceCount <= 12) {
-                    const endgameMoves = moves.filter(m => 
-                        m.piece === 'k' || m.piece === 'p' || m.flags.includes('c')
-                    );
-                    selectedMove = endgameMoves.length > 0 ? 
-                        endgameMoves[Math.floor(Math.random() * endgameMoves.length)] :
-                        moves[Math.floor(Math.random() * moves.length)];
-                } else {
-                    const developmentMoves = moves.filter(m => 
-                        m.piece === 'n' || m.piece === 'b' || 
-                        m.flags.includes('k') || m.flags.includes('q') ||
-                        ['d4', 'd5', 'e4', 'e5'].includes(m.to)
-                    );
-                    selectedMove = developmentMoves.length > 0 ? 
-                        developmentMoves[Math.floor(Math.random() * developmentMoves.length)] :
-                        moves[Math.floor(Math.random() * moves.length)];
-                }
-                break;
-                
-            default:
-                selectedMove = moves[Math.floor(Math.random() * moves.length)];
+            });
         }
-
-        const from = selectedMove.from;
-        const to = selectedMove.to;
-        const isCapture = selectedMove.flags.includes('c') || selectedMove.flags.includes('e');
-        const isPawnPromotion = selectedMove.piece === 'p' && 
-            ((game.turn() === 'w' && to[1] === '8') || (game.turn() === 'b' && to[1] === '1'));
-
-        let promotion = 'q';
-        if (isPawnPromotion) {
-            const promotionOptions = ['q', 'r', 'b', 'n'];
-            promotion = promotionOptions[Math.floor(Math.random() * promotionOptions.length)];
-        }
-
-        game.move({ from, to, promotion });
-        lastMove = { from, to };
-        clearAllHighlightsAndState();
-        animateMove(from, to, isCapture, () => {
-            renderBoard();
-            if (game.game_over()) {
-                displayVictoryMessage();
-            } else if (isBotTurn()) {
-                setTimeout(aiMove, 500);
-            }
-        });
     }
 
     function displayVictoryMessage() {
         let message = '';
         if (game.in_checkmate()) {
-            const winner = game.turn() === 'w' ? 'Black' : 'White';
+            const winner = game.turn() === 'w' ? 'White' : 'Black';
             message = `${winner} wins by checkmate!`;
         } else if (game.in_stalemate()) {
             message = 'Game ends in stalemate!';

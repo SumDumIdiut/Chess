@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Universal Poker Game</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #0f3460 0%, #16537e 100%);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .header {
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 2.5rem;
+      background: linear-gradient(45deg, #ffd700, #ffed4a);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .game-controls {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .variant-selector {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .variant-selector label {
+      font-size: 14px;
+      color: #ccc;
+    }
+
+    select {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 2px solid #444;
+      background: #2e3440;
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: #ffd700;
+    }
+
+    button {
+      background: linear-gradient(45deg, #ffd700, #ffed4a);
+      color: #2c3e50;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+    }
+
+    button:disabled {
+      background: #666;
+      color: #999;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .game-info {
+      display: flex;
+      gap: 30px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: #ccc;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .game-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 30px;
+      width: 100%;
+      max-width: 1200px;
+    }
+
+    .community-cards {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      min-height: 140px;
+      padding: 20px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+    }
+
+    .community-label {
+      font-weight: bold;
+      margin-right: 15px;
+      color: #ffd700;
+    }
+
+    .players-area {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .player {
+      background: rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 20px;
+      min-width: 200px;
+      text-align: center;
+      backdrop-filter: blur(5px);
+      border: 2px solid transparent;
+      transition: all 0.3s;
+    }
+
+    .player.active {
+      border-color: #ffd700;
+      background: rgba(255,215,0,0.1);
+    }
+
+    .player.winner {
+      border-color: #00ff00;
+      background: rgba(0,255,0,0.1);
+    }
+
+    .player-name {
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #ffd700;
+    }
+
+    .player-cards {
+      display: flex;
+      gap: 5px;
+      justify-content: center;
+      margin-bottom: 15px;
+      min-height: 140px;
+      align-items: center;
+    }
+
+    .card {
+      width: 80px;
+      height: 120px;
+      background: white;
+      border-radius: 8px;
+      border: 2px solid #333;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      color: black;
+      position: relative;
+      transition: all 0.3s;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+    }
+
+    .card.red {
+      color: #dc2626;
+    }
+
+    .card.selected {
+      border: 3px solid #ffd700;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+    }
+
+    .card .top-left,
+    .card .bottom-right {
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .card .top-left {
+      align-self: flex-start;
+    }
+
+    .card .bottom-right {
+      align-self: flex-end;
+      transform: rotate(180deg);
+    }
+
+    .card.face-down {
+      background: linear-gradient(45deg, #1e3a8a 0%, #3b82f6 50%, #1e3a8a 100%);
+      color: transparent;
+      background-size: 20px 20px;
+      background-image: 
+        repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,.1) 5px, rgba(255,255,255,.1) 10px);
+    }
+
+    .player-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: #ccc;
+    }
+
+    .hand-strength {
+      font-weight: bold;
+      color: #ffd700;
+      margin-top: 5px;
+    }
+
+    .betting-area {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .bet-button {
+      padding: 6px 12px;
+      font-size: 12px;
+      background: #374151;
+      color: white;
+      border: 1px solid #6b7280;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .bet-button:hover {
+      background: #4b5563;
+    }
+
+    .variant-info {
+      background: rgba(0,0,0,0.3);
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      text-align: center;
+      backdrop-filter: blur(5px);
+    }
+
+    .variant-info h3 {
+      margin: 0 0 10px 0;
+      color: #ffd700;
+    }
+
+    .variant-info p {
+      margin: 0;
+      font-size: 14px;
+      color: #ccc;
+    }
+
+    @media (max-width: 768px) {
+      .players-area {
+        flex-direction: column;
+        align-items: center;
+      }
+      
+      .community-cards {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      
+      .game-controls {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🃏 Universal Poker 🃏</h1>
+  </div>
+
+  <div class="game-controls">
+    <div class="variant-selector">
+      <label>Poker Variant:</label>
+      <select id="pokerVariant" onchange="changeVariant()">
+        <optgroup label="Texas Hold'em Family">
+          <option value="texas-holdem">Texas Hold'em</option>
+          <option value="omaha">Omaha</option>
+          <option value="omaha-hi-lo">Omaha Hi-Lo</option>
+          <option value="pineapple">Pineapple</option>
+          <option value="crazy-pineapple">Crazy Pineapple</option>
+        </optgroup>
+        <optgroup label="Seven Card Stud">
+          <option value="seven-stud">Seven Card Stud</option>
+          <option value="seven-stud-hi-lo">Seven Card Stud Hi-Lo</option>
+          <option value="razz">Razz</option>
+        </optgroup>
+        <optgroup label="Draw Poker">
+          <option value="five-card-draw">Five Card Draw</option>
+          <option value="triple-draw">2-7 Triple Draw</option>
+          <option value="badugi">Badugi</option>
+        </optgroup>
+        <optgroup label="Mixed Games">
+          <option value="horse">H.O.R.S.E.</option>
+          <option value="eight-game">8-Game Mix</option>
+        </optgroup>
+        <optgroup label="Exotic Variants">
+          <option value="chinese-poker">Chinese Poker</option>
+          <option value="pai-gow">Pai Gow Poker</option>
+          <option value="caribbean-stud">Caribbean Stud</option>
+          <option value="three-card">Three Card Poker</option>
+          <option value="mississippi-stud">Mississippi Stud</option>
+        </optgroup>
+      </select>
+    </div>
+    
+    <button onclick="dealNewHand()">🎰 Deal New Hand</button>
+    <button onclick="autoPlay()" id="autoPlayBtn">🤖 Auto Play</button>
+  </div>
+
+  <div class="variant-info" id="variantInfo"></div>
+
+  <div class="game-info">
+    <span id="currentRound">Round: Pre-flop</span>
+    <span id="potSize">Pot: $0</span>
+    <span id="gameType">Game: Texas Hold'em</span>
+  </div>
+
+  <div class="game-area">
+    <div class="community-cards" id="communityCards">
+      <span class="community-label">Community Cards:</span>
+    </div>
+
+    <div class="players-area" id="playersArea"></div>
+
+    <div class="betting-area">
+      <button class="bet-button" onclick="playerAction('fold')">Fold</button>
+      <button class="bet-button" onclick="playerAction('call')">Call</button>
+      <button class="bet-button" onclick="playerAction('raise')">Raise</button>
+      <button class="bet-button" onclick="playerAction('check')">Check</button>
+    </div>
+  </div>
+
+  <script>
+    const suits = ['♠', '♥', '♦', '♣'];
+    const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+    
+    let gameState = {
+      variant: 'texas-holdem',
+      deck: [],
+      players: [],
+      communityCards: [],
+      currentPlayer: 0,
+      round: 'pre-flop',
+      pot: 0,
+      isAutoPlay: false
+    };
+
+    const pokerVariants = {
+      'texas-holdem': {
+        name: 'Texas Hold\'em',
+        description: 'Each player gets 2 hole cards, 5 community cards are dealt (flop, turn, river)',
+        holeCards: 2,
+        communityCards: 5,
+        players: 6,
+        rounds: ['pre-flop', 'flop', 'turn', 'river']
+      },
+      'omaha': {
+        name: 'Omaha',
+        description: 'Each player gets 4 hole cards, must use exactly 2 with 3 community cards',
+        holeCards: 4,
+        communityCards: 5,
+        players: 6,
+        rounds: ['pre-flop', 'flop', 'turn', 'river']
+      },
+      'omaha-hi-lo': {
+        name: 'Omaha Hi-Lo',
+        description: 'Omaha variant where pot is split between highest and lowest hands',
+        holeCards: 4,
+        communityCards: 5,
+        players: 6,
+        rounds: ['pre-flop', 'flop', 'turn', 'river']
+      },
+      'seven-stud': {
+        name: 'Seven Card Stud',
+        description: 'Each player gets 7 cards (3 down, 4 up), no community cards',
+        holeCards: 7,
+        communityCards: 0,
+        players: 7,
+        rounds: ['3rd street', '4th street', '5th street', '6th street', '7th street']
+      },
+      'five-card-draw': {
+        name: 'Five Card Draw',
+        description: 'Classic poker - each player gets 5 cards, one draw round',
+        holeCards: 5,
+        communityCards: 0,
+        players: 6,
+        rounds: ['initial', 'draw', 'final']
+      },
+      'razz': {
+        name: 'Razz',
+        description: 'Seven Card Stud for the lowest hand (A-2-3-4-5 is the best)',
+        holeCards: 7,
+        communityCards: 0,
+        players: 7,
+        rounds: ['3rd street', '4th street', '5th street', '6th street', '7th street']
+      },
+      'chinese-poker': {
+        name: 'Chinese Poker',
+        description: 'Each player gets 13 cards, arranges into 3 hands (3-5-5)',
+        holeCards: 13,
+        communityCards: 0,
+        players: 4,
+        rounds: ['deal', 'arrange', 'scoring']
+      },
+      'three-card': {
+        name: 'Three Card Poker',
+        description: 'Each player gets 3 cards, play against dealer',
+        holeCards: 3,
+        communityCards: 0,
+        players: 6,
+        rounds: ['ante', 'play']
+      }
+    };
+
+    function createDeck() {
+      gameState.deck = [];
+      for (let suit of suits) {
+        for (let rank of ranks) {
+          gameState.deck.push({ suit, rank });
+        }
+      }
+      // Shuffle deck
+      for (let i = gameState.deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [gameState.deck[i], gameState.deck[j]] = [gameState.deck[j], gameState.deck[i]];
+      }
+    }
+
+    function createPlayers() {
+      const variant = pokerVariants[gameState.variant];
+      gameState.players = [];
+      
+      const playerNames = ['You', 'Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank', 'Grace'];
+      
+      for (let i = 0; i < variant.players; i++) {
+        gameState.players.push({
+          name: playerNames[i] || `Player ${i + 1}`,
+          cards: [],
+          isHuman: i === 0,
+          chips: 1000,
+          currentBet: 0,
+          isActive: true,
+          handStrength: ''
+        });
+      }
+    }
+
+    function renderCard(card, faceDown = false) {
+      const cardDiv = document.createElement('div');
+      cardDiv.className = 'card';
+      
+      if (faceDown) {
+        cardDiv.classList.add('face-down');
+        return cardDiv;
+      }
+
+      const topLeft = document.createElement('div');
+      topLeft.className = 'top-left';
+      topLeft.textContent = card.rank + card.suit;
+
+      const bottomRight = document.createElement('div');
+      bottomRight.className = 'bottom-right';
+      bottomRight.textContent = card.rank + card.suit;
+
+      cardDiv.appendChild(topLeft);
+      cardDiv.appendChild(bottomRight);
+
+      if (['♥', '♦'].includes(card.suit)) {
+        cardDiv.classList.add('red');
+      }
+
+      return cardDiv;
+    }
+
+    function dealCards() {
+      const variant = pokerVariants[gameState.variant];
+      
+      // Deal hole cards to each player
+      for (let player of gameState.players) {
+        player.cards = [];
+        for (let i = 0; i < variant.holeCards; i++) {
+          if (gameState.deck.length > 0) {
+            player.cards.push(gameState.deck.pop());
+          }
+        }
+      }
+
+      // Deal community cards if applicable
+      gameState.communityCards = [];
+      if (variant.communityCards > 0) {
+        for (let i = 0; i < variant.communityCards; i++) {
+          if (gameState.deck.length > 0) {
+            gameState.communityCards.push(gameState.deck.pop());
+          }
+        }
+      }
+    }
+
+    function evaluateHand(cards, communityCards = []) {
+      // Simple hand evaluation - just return a basic description
+      const allCards = [...cards, ...communityCards];
+      const suits = {};
+      const ranks = {};
+      
+      allCards.forEach(card => {
+        suits[card.suit] = (suits[card.suit] || 0) + 1;
+        ranks[card.rank] = (ranks[card.rank] || 0) + 1;
+      });
+
+      const flushSuit = Object.keys(suits).find(suit => suits[suit] >= 5);
+      const pairs = Object.keys(ranks).filter(rank => ranks[rank] >= 2);
+      const trips = Object.keys(ranks).filter(rank => ranks[rank] >= 3);
+      const quads = Object.keys(ranks).filter(rank => ranks[rank] >= 4);
+
+      if (quads.length > 0) return 'Four of a Kind';
+      if (trips.length > 0 && pairs.length > 1) return 'Full House';
+      if (flushSuit) return 'Flush';
+      if (trips.length > 0) return 'Three of a Kind';
+      if (pairs.length >= 2) return 'Two Pair';
+      if (pairs.length === 1) return 'One Pair';
+      
+      return 'High Card';
+    }
+
+    function renderGame() {
+      renderCommunityCards();
+      renderPlayers();
+      updateGameInfo();
+    }
+
+    function renderCommunityCards() {
+      const container = document.getElementById('communityCards');
+      const label = container.querySelector('.community-label');
+      container.innerHTML = '';
+      container.appendChild(label);
+
+      const variant = pokerVariants[gameState.variant];
+      if (variant.communityCards === 0) {
+        container.style.display = 'none';
+        return;
+      }
+      
+      container.style.display = 'flex';
+      
+      // Show cards based on current round
+      let cardsToShow = 0;
+      switch (gameState.round) {
+        case 'flop': cardsToShow = 3; break;
+        case 'turn': cardsToShow = 4; break;
+        case 'river': cardsToShow = 5; break;
+      }
+
+      for (let i = 0; i < Math.min(cardsToShow, gameState.communityCards.length); i++) {
+        const cardDiv = renderCard(gameState.communityCards[i]);
+        container.appendChild(cardDiv);
+      }
+    }
+
+    function renderPlayers() {
+      const container = document.getElementById('playersArea');
+      container.innerHTML = '';
+
+      gameState.players.forEach((player, index) => {
+        const playerDiv = document.createElement('div');
+        playerDiv.className = 'player';
+        if (index === gameState.currentPlayer) {
+          playerDiv.classList.add('active');
+        }
+
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'player-name';
+        nameDiv.textContent = player.name;
+
+        const cardsDiv = document.createElement('div');
+        cardsDiv.className = 'player-cards';
+
+        // Show cards (face down for other players, face up for human player)
+        player.cards.forEach(card => {
+          const shouldShowCard = player.isHuman || gameState.isAutoPlay;
+          const cardDiv = renderCard(card, !shouldShowCard);
+          cardsDiv.appendChild(cardDiv);
+        });
+
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'player-info';
+        infoDiv.innerHTML = `
+          <span>Chips: $${player.chips}</span>
+          <span>Bet: $${player.currentBet}</span>
+        `;
+
+        const strengthDiv = document.createElement('div');
+        strengthDiv.className = 'hand-strength';
+        if (player.isHuman || gameState.isAutoPlay) {
+          strengthDiv.textContent = evaluateHand(player.cards, gameState.communityCards);
+        }
+
+        playerDiv.appendChild(nameDiv);
+        playerDiv.appendChild(cardsDiv);
+        playerDiv.appendChild(infoDiv);
+        playerDiv.appendChild(strengthDiv);
+
+        container.appendChild(playerDiv);
+      });
+    }
+
+    function updateGameInfo() {
+      document.getElementById('currentRound').textContent = `Round: ${gameState.round}`;
+      document.getElementById('potSize').textContent = `Pot: $${gameState.pot}`;
+      document.getElementById('gameType').textContent = `Game: ${pokerVariants[gameState.variant].name}`;
+    }
+
+    function updateVariantInfo() {
+      const variant = pokerVariants[gameState.variant];
+      const infoDiv = document.getElementById('variantInfo');
+      infoDiv.innerHTML = `
+        <h3>${variant.name}</h3>
+        <p>${variant.description}</p>
+      `;
+    }
+
+    function changeVariant() {
+      gameState.variant = document.getElementById('pokerVariant').value;
+      updateVariantInfo();
+      dealNewHand();
+    }
+
+    function dealNewHand() {
+      createDeck();
+      createPlayers();
+      dealCards();
+      gameState.currentPlayer = 0;
+      gameState.round = pokerVariants[gameState.variant].rounds[0];
+      gameState.pot = 0;
+      renderGame();
+    }
+
+    function playerAction(action) {
+      const player = gameState.players[gameState.currentPlayer];
+      
+      switch (action) {
+        case 'fold':
+          player.isActive = false;
+          break;
+        case 'call':
+          gameState.pot += 50;
+          player.currentBet = 50;
+          player.chips -= 50;
+          break;
+        case 'raise':
+          gameState.pot += 100;
+          player.currentBet = 100;
+          player.chips -= 100;
+          break;
+        case 'check':
+          // No money changes hands
+          break;
+      }
+
+      // Move to next player
+      do {
+        gameState.currentPlayer = (gameState.currentPlayer + 1) % gameState.players.length;
+      } while (!gameState.players[gameState.currentPlayer].isActive);
+
+      renderGame();
+
+      // Auto-play for computer players
+      if (!gameState.players[gameState.currentPlayer].isHuman) {
+        setTimeout(() => {
+          const actions = ['fold', 'call', 'check'];
+          const randomAction = actions[Math.floor(Math.random() * actions.length)];
+          playerAction(randomAction);
+        }, 1000);
+      }
+    }
+
+    function autoPlay() {
+      gameState.isAutoPlay = !gameState.isAutoPlay;
+      const btn = document.getElementById('autoPlayBtn');
+      btn.textContent = gameState.isAutoPlay ? '⏸️ Stop Auto' : '🤖 Auto Play';
+      renderGame();
+    }
+
+    // Initialize game
+    changeVariant();
+  </script>
+</body>
+</html>
