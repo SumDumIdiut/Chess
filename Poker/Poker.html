@@ -83,20 +83,13 @@
         <button class="lobby-btn" onclick="goToLobby()">Create / Join Lobby</button>
     </div>
     <script>
-    // Firebase configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyB_IaCbvWDqeQor2vvvtwYSywaxSj-6YvI",
-      authDomain: "pokerweb-5d5ea.firebaseapp.com",
-      projectId: "pokerweb-5d5ea",
-      storageBucket: "pokerweb-5d5ea.firebasestorage.app",
-      messagingSenderId: "563976234474",
-      appId: "1:563976234474:web:b16ec64d73c69eb9ffbe93",
-      measurementId: "G-FZMTKB7CZ6"
-    };
-    // Initialize Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    const analytics = firebase.analytics(app);
-    const db = firebase.database();
+    // Firebase configuration (API key removed for security)
+    // const firebaseConfig = { ... };
+    // const app = firebase.initializeApp(firebaseConfig);
+    // const analytics = firebase.analytics(app);
+    // const db = firebase.database();
+    // Please insert your own Firebase config here to enable multiplayer.
+    // See https://firebase.google.com/docs/web/setup for details.
 
     function goToLobby() {
         const username = document.getElementById('username').value.trim();

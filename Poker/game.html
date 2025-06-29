@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <!-- Firebase Analytics -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js"></script>
+    <!-- Firebase Realtime Database (for multiplayer sync) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -281,8 +287,20 @@
     // Remove whitespace from player names (for ?players=You, Bob, Charlie)
     for (let i = 0; i < playerNames.length; i++) playerNames[i] = playerNames[i].trim();
 
-    // --- Multiplayer Sync Logic ---
+    // --- Firebase Multiplayer Sync Logic ---
+    // Firebase configuration (API key removed for security)
+    // const firebaseConfig = { ... };
+    // const app = firebase.initializeApp(firebaseConfig);
+    // const analytics = firebase.analytics(app);
+    // const db = firebase.database();
+    // Please insert your own Firebase config here to enable multiplayer.
+    // See https://firebase.google.com/docs/web/setup for details.
+
+    // Get lobby code from query param
+    const lobbyCode = getQueryParam('lobbyCode');
+
     function saveGameState() {
+        if (!lobbyCode) return;
         const state = {
             playerHands,
             communityCards,
@@ -290,35 +308,43 @@
             folded,
             playerBets
         };
-        localStorage.setItem('pokerGameState', JSON.stringify(state));
+        db.ref('games/' + lobbyCode).set(state);
     }
 
-    function loadGameState() {
-        const stateStr = localStorage.getItem('pokerGameState');
-        if (!stateStr) return false;
-        try {
-            const state = JSON.parse(stateStr);
-        if (!state) return false;
-        playerHands = state.playerHands;
-        communityCards = state.communityCards;
-        currentPlayer = state.currentPlayer;
-        folded = state.folded;
-        playerBets = state.playerBets;
-        renderPlayers();
-        renderCommunityCards();
-        showActionButtons();
-        return true;
-        } catch (e) {
-            return false;
-        }
-    }
-
-    window.addEventListener('storage', function(e) {
-        if (e.key === 'pokerGameState') {
-            loadGameState();
+    function loadGameState(callback) {
+        if (!lobbyCode) return false;
+        db.ref('games/' + lobbyCode).get().then(snapshot => {
+            if (!snapshot.exists()) { if (callback) callback(false); return false; }
+            const state = snapshot.val();
+            if (!state) { if (callback) callback(false); return false; }
+            playerHands = state.playerHands;
+            communityCards = state.communityCards;
+            currentPlayer = state.currentPlayer;
+            folded = state.folded;
+            playerBets = state.playerBets;
+            renderPlayers();
+            renderCommunityCards();
             showActionButtons();
-        }
-    });
+            if (callback) callback(true);
+            return true;
+        });
+    }
+
+    // Listen for game state changes
+    if (lobbyCode) {
+        db.ref('games/' + lobbyCode).on('value', function(snapshot) {
+            const state = snapshot.val();
+            if (!state) return;
+            playerHands = state.playerHands;
+            communityCards = state.communityCards;
+            currentPlayer = state.currentPlayer;
+            folded = state.folded;
+            playerBets = state.playerBets;
+            renderPlayers();
+            renderCommunityCards();
+            showActionButtons();
+        });
+    }
 
     // --- Poker Game Logic ---
     // --- Poker Game Logic ---
@@ -390,13 +416,9 @@
         communityCards = [];
         folded = Array(playerNames.length).fill(false);
         playerBets = Array(playerNames.length).fill(0);
-        // Reset bet count in localStorage (for all tabs)
-        localStorage.removeItem('pokerGameState');
-        // Deal unique cards to each player, but all screens will get the same deal order
         for (let i = 0; i < playerNames.length; i++) {
             playerHands.push([deck.pop(), deck.pop()]);
         }
-        // Save the deck for community card reveals
         window._pokerDeck = deck;
         renderPlayers();
         renderCommunityCards();
@@ -533,65 +555,52 @@
     }
 
     function playerAction(action, overrideName) {
-        // Always load the latest state from localStorage before acting (for multi-tab sync)
-        loadGameState();
-        // overrideName: if set, acts as that player (for admin/testing)
-        let myName = getMyName();
-        // Only allow override if called from the console (not from UI button click)
-        // and only if the current user is the host (first player)
-        const isConsole = !!overrideName;
-        const isHost = myName.trim().toLowerCase() === playerNames[0].trim().toLowerCase();
-        if (isConsole && (!isHost || (overrideName && overrideName.trim().toLowerCase() === myName.trim().toLowerCase()))) return; // Prevent others from folding for you, only host can fold for others
-        if (overrideName && isConsole) myName = overrideName;
-        // Compare trimmed and case-insensitive names for current player check
-        if (playerNames[currentPlayer].trim().toLowerCase() !== myName.trim().toLowerCase()) return; // Only allow action for current player
-        if (action === 'fold') {
-            folded[currentPlayer] = true;
-            showStatusOverlay(`<span style='color:#a855f7;'>${myName} folded!</span>`);
-            setTimeout(hideStatusOverlay, 1500);
-        } else if (action === 'call') {
-            playerBets[currentPlayer] += 10; // Example: call is always $10 for demo
-        } else if (action === 'raise') {
-            const raiseAmount = parseInt(document.getElementById('betAmount').value, 10) || 10;
-            playerBets[currentPlayer] += raiseAmount;
-        }
-        // Check for winner (only one not folded)
-        const activePlayers = folded.map(f => !f).filter(Boolean).length;
-        if (activePlayers === 1) {
-            // Find winner
-            let winnerIdx = folded.findIndex(f => !f);
-            let winnerName = playerNames[winnerIdx];
-            // Show winner message
-            showStatusOverlay(`<span style='color:#a855f7;'>${winnerName} wins the hand!</span>`);
-            // Save winner for crown
-            localStorage.setItem('pokerLastWinner', winnerName);
+        // Always load the latest state from Firebase before acting
+        loadGameState(() => {
+            let myName = getMyName();
+            const isConsole = !!overrideName;
+            const isHost = myName.trim().toLowerCase() === playerNames[0].trim().toLowerCase();
+            if (isConsole && (!isHost || (overrideName && overrideName.trim().toLowerCase() === myName.trim().toLowerCase()))) return;
+            if (overrideName && isConsole) myName = overrideName;
+            if (playerNames[currentPlayer].trim().toLowerCase() !== myName.trim().toLowerCase()) return;
+            if (action === 'fold') {
+                folded[currentPlayer] = true;
+                showStatusOverlay(`<span style='color:#a855f7;'>${myName} folded!</span>`);
+                setTimeout(hideStatusOverlay, 1500);
+            } else if (action === 'call') {
+                playerBets[currentPlayer] += 10;
+            } else if (action === 'raise') {
+                const raiseAmount = parseInt(document.getElementById('betAmount').value, 10) || 10;
+                playerBets[currentPlayer] += raiseAmount;
+            }
+            const activePlayers = folded.map(f => !f).filter(Boolean).length;
+            if (activePlayers === 1) {
+                let winnerIdx = folded.findIndex(f => !f);
+                let winnerName = playerNames[winnerIdx];
+                showStatusOverlay(`<span style='color:#a855f7;'>${winnerName} wins the hand!</span>`);
+                // Save winner for crown (could be moved to Firebase for full sync)
+                setTimeout(() => {
+                    hideStatusOverlay();
+                    let params = new URLSearchParams(window.location.search);
+                    let lobbyCode = params.get('lobbyCode') || '';
+                    let username = params.get('me') || '';
+                    let url = `lobby.html`;
+                    if (lobbyCode || username) {
+                        url += '?';
+                        if (lobbyCode) url += `lobbyCode=${encodeURIComponent(lobbyCode)}`;
+                        if (lobbyCode && username) url += '&';
+                        if (username) url += `username=${encodeURIComponent(username)}`;
+                    }
+                    window.location.href = url;
+                }, 2200);
+                return;
+            }
+            currentPlayer = (currentPlayer + 1) % playerNames.length;
+            renderPlayers();
+            maybeAutoReveal();
             saveGameState();
-            setTimeout(() => {
-                hideStatusOverlay();
-                // Return to lobby with winner info
-                // Try to preserve lobby code and username if present
-                let params = new URLSearchParams(window.location.search);
-                let lobbyCode = params.get('lobbyCode') || '';
-                let username = params.get('me') || '';
-                let url = `lobby.html`;
-                if (lobbyCode || username) {
-                    url += '?';
-                    if (lobbyCode) url += `lobbyCode=${encodeURIComponent(lobbyCode)}`;
-                    if (lobbyCode && username) url += '&';
-                    if (username) url += `username=${encodeURIComponent(username)}`;
-                }
-                window.location.href = url;
-            }, 2200);
-            return;
-        }
-        // Move to next player
-        currentPlayer = (currentPlayer + 1) % playerNames.length;
-        renderPlayers();
-        maybeAutoReveal();
-        saveGameState();
-        // Immediately reload state and update UI for all clients
-        loadGameState();
-        showActionButtons();
+            showActionButtons();
+        });
     }
 
     // For testing/admin: allow folding for any player via console, but only host can do it and not for themselves
@@ -820,11 +829,7 @@
     window.addEventListener('DOMContentLoaded', function() {
         afterRulesModal();
         showActionButtons();
-        // Poll for state changes every 500ms to sync all tabs (for same-browser multiplayer)
-        setInterval(function() {
-            loadGameState();
-            showActionButtons();
-        }, 500);
+        // No polling needed, Firebase listener handles sync
     });
 
     function showStatusOverlay(msg) {

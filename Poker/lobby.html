@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Poker Lobby</title>
     <link rel="stylesheet" href="../Poker.css">
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <!-- Firebase Analytics -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js"></script>
+    <!-- Firebase Realtime Database (for multiplayer sync) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -307,8 +313,14 @@
         </div>
     </div>
     <script>
-    // Always clear poker game state when entering the lobby, so a new game starts fresh for all players
-    localStorage.removeItem('pokerGameState');
+    // Firebase configuration
+    // Firebase configuration (API key removed for security)
+    // const firebaseConfig = { ... };
+    // const app = firebase.initializeApp(firebaseConfig);
+    // const analytics = firebase.analytics(app);
+    // const db = firebase.database();
+    // Please insert your own Firebase config here to enable multiplayer.
+    // See https://firebase.google.com/docs/web/setup for details.
     </script>
     <script src="../lobby.js"></script>
     <script>
@@ -338,7 +350,6 @@
         var codeElem = document.getElementById('lobbyRoomCode');
         var username = getQueryParam('username');
         var lobbyCode = getQueryParam('lobbyCode');
-        // Always generate or use a code
         var code = '';
         if (codeElem && (!codeElem.textContent || codeElem.textContent.trim() === '')) {
             code = lobbyCode || '';
@@ -350,61 +361,64 @@
         } else if (codeElem) {
             code = codeElem.textContent.trim();
         }
-        // Add user to localStorage lobby
+        // Add user to Firebase lobby
         if (username && code) {
-            let roomData = JSON.parse(localStorage.getItem(code));
-            // If the room does not exist and a lobbyCode was provided, show error and do not create a new lobby
-            if (!roomData && lobbyCode) {
-                alert('Failed to connect: Lobby not found. Please check the code or try again.');
-                // Optionally, clear the code box for user convenience
-                if (codeElem) codeElem.textContent = '';
-                return;
-            }
-            // If the room does not exist and no lobbyCode was provided, create a new lobby
-            if (!roomData && !lobbyCode) {
-                roomData = {
-                    code: code,
-                    players: [],
-                    variant: 'texas-holdem',
-                    enableSmallBlind: true,
-                    enableBigBlind: true
-                };
-            }
-            // Only add the player if not already present
-            if (roomData && !roomData.players.find(p => p.name.trim().toLowerCase() === (username ? username.trim().toLowerCase() : ''))) {
-                // If there are no players, this user is host
-                const isHost = roomData.players.length === 0;
-                roomData.players.push({ name: username, isHost: isHost, chips: 1000 });
-            }
-            if (roomData) {
-                localStorage.setItem(code, JSON.stringify(roomData));
-                // Update UI
-                setTimeout(() => updateLobbyUI(code), 100);
-            }
+            db.ref('lobbies/' + code).get().then((snapshot) => {
+                let roomData = snapshot.exists() ? snapshot.val() : null;
+                // If the room does not exist and a lobbyCode was provided, show error and do not create a new lobby
+                if (!roomData && lobbyCode) {
+                    alert('Failed to connect: Lobby not found. Please check the code or try again.');
+                    if (codeElem) codeElem.textContent = '';
+                    return;
+                }
+                // If the room does not exist and no lobbyCode was provided, create a new lobby
+                if (!roomData && !lobbyCode) {
+                    roomData = {
+                        code: code,
+                        players: [],
+                        variant: 'texas-holdem',
+                        enableSmallBlind: true,
+                        enableBigBlind: true
+                    };
+                }
+                // Only add the player if not already present
+                if (roomData && !roomData.players.find(p => p.name.trim().toLowerCase() === (username ? username.trim().toLowerCase() : ''))) {
+                    const isHost = roomData.players.length === 0;
+                    roomData.players.push({ name: username, isHost: isHost, chips: 1000 });
+                }
+                if (roomData) {
+                    db.ref('lobbies/' + code).set(roomData).then(() => {
+                        // Update UI
+                        setTimeout(() => updateLobbyUI(code), 100);
+                    });
+                }
+            });
         }
-        // Always update UI on load and poll for changes
+        // Always update UI on load and listen for changes
         if (codeElem) {
             const code = codeElem.textContent.trim();
             setTimeout(() => updateLobbyUI(code), 200);
-            setInterval(() => updateLobbyUI(code), 1000);
+            // Listen for changes in lobby data
+            db.ref('lobbies/' + code).on('value', function(snapshot) {
+                updateLobbyUI(code, snapshot.val());
+            });
             // Poll for gameStarted
             pollGameStarted(code);
         }
     });
     // Minimal updateLobbyUI implementation
-    function updateLobbyUI(code) {
+    function updateLobbyUI(code, roomData) {
         const playersList = document.getElementById('playersList');
         if (!playersList) return;
-        let roomData = JSON.parse(localStorage.getItem(code));
+        // If roomData not passed, fetch from Firebase synchronously (should not happen in normal flow)
+        if (!roomData) return;
         playersList.innerHTML = '';
         if (roomData && Array.isArray(roomData.players)) {
-            // Get last winner for crown
-            let lastWinner = localStorage.getItem('pokerLastWinner');
+            // No lastWinner crown for now (could be added via Firebase if needed)
             roomData.players.forEach(player => {
                 const li = document.createElement('li');
                 li.className = 'player-item' + (player.isHost ? ' host' : '');
-                let crown = (lastWinner && lastWinner === player.name) ? ' <span title="Winner" style="color:gold;font-size:1.2em;">&#x1F451;</span>' : '';
-                li.innerHTML = `<span>${player.name}${player.isHost ? ' (Host)' : ''}${crown}</span><span class="player-status">Ready</span>`;
+                li.innerHTML = `<span>${player.name}${player.isHost ? ' (Host)' : ''}</span><span class="player-status">Ready</span>`;
                 playersList.appendChild(li);
             });
         }
@@ -413,7 +427,6 @@
         var isHost = false;
         if (roomData && Array.isArray(roomData.players)) {
             var hostPlayer = roomData.players.find(p => p.isHost);
-            // Compare trimmed and case-insensitive names to avoid whitespace/case issues
             isHost = hostPlayer && hostPlayer.name.trim().toLowerCase() === (username ? username.trim().toLowerCase() : '');
         }
         // Controls
@@ -433,25 +446,27 @@
         if (enableBigBlind) enableBigBlind.title = isHost ? '' : 'Only the host can change blinds';
 
         // --- Share blind settings across all players ---
-        // On first load, initialize if not present
         if (roomData) {
             if (typeof roomData.enableSmallBlind !== 'boolean') roomData.enableSmallBlind = true;
             if (typeof roomData.enableBigBlind !== 'boolean') roomData.enableBigBlind = true;
         }
-        // Update checkboxes to reflect shared state
         if (enableSmallBlind && roomData) enableSmallBlind.checked = !!roomData.enableSmallBlind;
         if (enableBigBlind && roomData) enableBigBlind.checked = !!roomData.enableBigBlind;
-        // Only host can change, and changes are saved to localStorage and broadcast
+        // Only host can change, and changes are saved to Firebase and broadcast
         if (isHost && enableSmallBlind && enableBigBlind) {
             enableSmallBlind.onchange = function() {
-                let rd = JSON.parse(localStorage.getItem(code));
-                rd.enableSmallBlind = enableSmallBlind.checked;
-                localStorage.setItem(code, JSON.stringify(rd));
+                db.ref('lobbies/' + code).get().then((snapshot) => {
+                    let rd = snapshot.val();
+                    rd.enableSmallBlind = enableSmallBlind.checked;
+                    db.ref('lobbies/' + code).set(rd);
+                });
             };
             enableBigBlind.onchange = function() {
-                let rd = JSON.parse(localStorage.getItem(code));
-                rd.enableBigBlind = enableBigBlind.checked;
-                localStorage.setItem(code, JSON.stringify(rd));
+                db.ref('lobbies/' + code).get().then((snapshot) => {
+                    let rd = snapshot.val();
+                    rd.enableBigBlind = enableBigBlind.checked;
+                    db.ref('lobbies/' + code).set(rd);
+                });
             };
         } else {
             if (enableSmallBlind) enableSmallBlind.onchange = null;
@@ -463,33 +478,33 @@
     function startOnlineGame() {
         var codeElem = document.getElementById('lobbyRoomCode');
         var code = codeElem ? codeElem.textContent.trim() : '';
-        var roomData = code ? JSON.parse(localStorage.getItem(code)) : null;
-        if (!roomData) return;
-        // Generate a new random handId for this game
-        var handId = Math.floor(Math.random() * 1e12).toString(36);
-        // Set gameStarted flag and handId
-        roomData.gameStarted = true;
-        roomData.handId = handId;
-        localStorage.setItem(code, JSON.stringify(roomData));
-        // Host will also redirect immediately
-        var players = roomData.players.map(p => encodeURIComponent(p.name)).join(',');
-        var variant = document.getElementById('variantSelect').value;
-        var url = `game.html?players=${players}&variant=${variant}&handId=${handId}`;
-        window.location.href = url;
+        db.ref('lobbies/' + code).get().then((snapshot) => {
+            var roomData = snapshot.val();
+            if (!roomData) return;
+            var handId = Math.floor(Math.random() * 1e12).toString(36);
+            roomData.gameStarted = true;
+            roomData.handId = handId;
+            db.ref('lobbies/' + code).set(roomData).then(() => {
+                var players = roomData.players.map(p => encodeURIComponent(p.name)).join(',');
+                var variant = document.getElementById('variantSelect').value;
+                var url = `game.html?players=${players}&variant=${variant}&handId=${handId}&lobbyCode=${code}`;
+                window.location.href = url;
+            });
+        });
     }
 
     // All clients: poll for gameStarted and redirect if set
     function pollGameStarted(code) {
-        setInterval(function() {
-            var roomData = JSON.parse(localStorage.getItem(code));
+        db.ref('lobbies/' + code).on('value', function(snapshot) {
+            var roomData = snapshot.val();
             if (roomData && roomData.gameStarted) {
                 var players = roomData.players.map(p => encodeURIComponent(p.name)).join(',');
                 var variant = roomData.variant || 'texas-holdem';
                 var handId = roomData.handId || (Math.floor(Math.random() * 1e12).toString(36));
-                var url = `game.html?players=${players}&variant=${variant}&handId=${handId}`;
+                var url = `game.html?players=${players}&variant=${variant}&handId=${handId}&lobbyCode=${code}`;
                 window.location.href = url;
             }
-        }, 700);
+        });
     }
     </script>
 </body>
