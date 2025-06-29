@@ -4,12 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Poker Lobby Entry</title>
-    <!-- Firebase App (the core Firebase SDK) -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <!-- Firebase Analytics -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js"></script>
-    <!-- Firebase Realtime Database (for multiplayer sync) -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -83,21 +77,6 @@
         <button class="lobby-btn" onclick="goToLobby()">Create / Join Lobby</button>
     </div>
     <script>
-    // Firebase configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyB_IaCbvWDqeQor2vvvtwYSywaxSj-6YvI",
-      authDomain: "pokerweb-5d5ea.firebaseapp.com",
-      projectId: "pokerweb-5d5ea",
-      storageBucket: "pokerweb-5d5ea.firebasestorage.app",
-      messagingSenderId: "563976234474",
-      appId: "1:563976234474:web:b16ec64d73c69eb9ffbe93",
-      measurementId: "G-FZMTKB7CZ6"
-    };
-    // Initialize Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    const analytics = firebase.analytics(app);
-    const db = firebase.database();
-
     function goToLobby() {
         const username = document.getElementById('username').value.trim();
         const lobbyCode = document.getElementById('lobbyCode').value.trim();
@@ -105,18 +84,16 @@
             alert('Please enter your username.');
             return;
         }
-        // Remove any previous winner/game state (optional, for compatibility)
-        // These would also need to be moved to Firebase for true multiplayer
-        // localStorage.removeItem('pokerLastWinner');
-        // localStorage.removeItem('pokerGameState');
-
+        // Always clear pokerLastWinner and pokerGameState
+        localStorage.removeItem('pokerLastWinner');
+        localStorage.removeItem('pokerGameState');
         let code = lobbyCode;
         if (!code) {
             // Creating a new lobby
             var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
             code = '';
             for (var i = 0; i < 4; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-            // Set up a fresh lobby room in Firebase
+            // Set up a fresh lobby room in localStorage
             const roomData = {
                 code: code,
                 players: [{ name: username, isHost: true, chips: 1000 }],
@@ -124,38 +101,12 @@
                 enableSmallBlind: true,
                 enableBigBlind: true
             };
-            db.ref('lobbies/' + code).set(roomData)
-                .then(() => {
-                    // Go to lobby after creation
-                    let url = 'lobby.html?username=' + encodeURIComponent(username) + '&lobbyCode=' + encodeURIComponent(code);
-                    window.location.href = url;
-                })
-                .catch((error) => {
-                    alert('Error creating lobby: ' + error.message);
-                });
-            return;
-        } else {
-            // Joining an existing lobby: check if it exists
-            db.ref('lobbies/' + code).get().then((snapshot) => {
-                if (snapshot.exists()) {
-                    let url = 'lobby.html?username=' + encodeURIComponent(username) + '&lobbyCode=' + encodeURIComponent(code);
-                    window.location.href = url;
-                } else {
-                    alert('Lobby not found. Please check the code or create a new lobby.');
-                }
-            }).catch((error) => {
-                alert('Error joining lobby: ' + error.message);
-            });
-            return;
+            localStorage.setItem(code, JSON.stringify(roomData));
         }
-    }
-
-    // --- Listen for changes to a lobby (example, for use in lobby.html or game.html) ---
-    // Usage: call listenToLobbyChanges(lobbyCode, callback)
-    function listenToLobbyChanges(lobbyCode, callback) {
-        db.ref('lobbies/' + lobbyCode).on('value', (snapshot) => {
-            callback(snapshot.val());
-        });
+        // If joining a lobby, do NOT pre-create the room; let lobby.html handle join failure if not found
+        let url = 'lobby.html?username=' + encodeURIComponent(username);
+        if (code) url += '&lobbyCode=' + encodeURIComponent(code);
+        window.location.href = url;
     }
     </script>
 </body>
