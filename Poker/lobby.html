@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poker Lobby</title>
+    <link rel="stylesheet" href="../Poker.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a1a3a, #2d1b69, #4c1d95, #5b21b6);
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .lobby-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .lobby-container {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 18px;
+            width: fit-content;
+            height: auto;
+            min-width: 0;
+            min-height: 0;
+            max-width: none;
+            max-height: none;
+            background: rgba(30, 27, 75, 0.7);
+            border-radius: 22px;
+            border: 2.5px solid #8b5cf6;
+            box-shadow: 0 8px 32px rgba(59,130,246,0.18);
+            padding: 24px 18px;
+        }
+        .lobby-panel, .lobby-panel.unified-panel {
+            background: rgba(30, 27, 75, 0.4);
+            border-radius: 12px;
+            padding: 16px 12px;
+            backdrop-filter: blur(8px);
+            border: 1.5px solid rgba(139, 92, 246, 0.3);
+            height: 470px;
+            min-height: 470px;
+            max-height: 470px;
+            overflow: hidden;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: stretch;
+        }
+        .players-panel {
+            width: 320px;
+            min-width: 320px;
+            max-width: 320px;
+        }
+        .lobby-info-panel, .host-controls-panel {
+            width: 320px;
+            min-width: 320px;
+            max-width: 320px;
+        }
+        .blind-options-vertical {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .blind-checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1em;
+            color: #8b5cf6;
+            cursor: pointer;
+            user-select: none;
+        }
+        .blind-checkbox-label input[type="checkbox"] {
+            accent-color: #8b5cf6;
+            width: 20px;
+            height: 20px;
+            margin-right: 6px;
+            border-radius: 6px;
+            border: 2px solid #8b5cf6;
+            background: rgba(30, 27, 75, 0.7);
+            cursor: pointer;
+        }
+        .blind-checkbox-label .custom-checkbox {
+            display: none;
+        }
+        .lobby-panel h3 {
+            color: #8b5cf6;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            text-align: center;
+        }
+        .players-list {
+            list-style: none;
+            padding: 0 0 0 0;
+            margin: 0;
+            width: 100%;
+            min-height: 340px;
+            max-height: 340px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: stretch;
+            gap: 8px;
+        }
+        .player-item {
+            background: rgba(59, 130, 246, 0.2);
+            padding: 12px 10px;
+            margin: 0;
+            border-radius: 8px;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 38px;
+            font-size: 1.08em;
+        }
+        .lobby-panel:first-child {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+            box-sizing: border-box;
+        }
+        .lobby-panel:first-child h3 {
+            margin-bottom: 18px;
+        }
+        .player-item.host {
+            background: rgba(139, 92, 246, 0.3);
+            border-color: #8b5cf6;
+        }
+        .player-status {
+            font-size: 0.9em;
+            color: #a855f7;
+        }
+        .room-info {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 20px;
+        }
+        .room-code {
+            font-size: 2em;
+            color: #8b5cf6;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        .game-variant {
+            font-size: 1.2em;
+            color: #a855f7;
+        }
+        .variant-selector {
+            margin: 20px 0;
+        }
+        .variant-selector select {
+            width: 100%;
+            padding: 12px;
+            font-size: 1.1em;
+            border: 2px solid #8b5cf6;
+            border-radius: 8px;
+            background: rgba(30, 27, 75, 0.7);
+            color: white;
+            outline: none;
+        }
+        .add-bot-btn {
+            padding: 15px;
+            font-size: 1em;
+            background: linear-gradient(145deg, #f59e0b, #f97316);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
+            font-weight: bold;
+            margin-top: 15px;
+            width: 100%;
+        }
+        .add-bot-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(245, 158, 11, 0.4);
+        }
+        .host-controls {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 15px;
+        }
+        .start-game-btn {
+            padding: 20px;
+            font-size: 1.4em;
+            background: linear-gradient(145deg, #10b981, #059669);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+            font-weight: bold;
+        }
+        .start-game-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 24px rgba(16, 185, 129, 0.4);
+        }
+        .start-game-btn:disabled {
+            background: linear-gradient(145deg, #6b7280, #4b5563);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .copy-code-btn {
+            padding: 10px 15px;
+            background: #7c3aed;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+        .copy-code-btn:hover {
+            background: #6d28d9;
+        }
+        .back-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: #7c3aed;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="lobby-screen">
+            <div class="lobby-container">
+                <div class="lobby-panel players-panel">
+                    <h3 style="text-align:center; margin-bottom: 18px;">Players</h3>
+                    <ul id="playersList" class="players-list" style="flex:1 1 auto;"></ul>
+                    <button class="add-bot-btn" onclick="addBot()" style="margin-top: auto; width: 100%;">Add Bot</button>
+                </div>
+                <div class="lobby-panel lobby-info-panel" style="display: flex; flex-direction: column; justify-content: flex-start; align-items: center; height: 100%;">
+                    <h3 style="text-align:center; margin-bottom: 18px;">Lobby</h3>
+                    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%;">
+                        <div class="room-code" id="lobbyRoomCode" style="text-align:center;"></div>
+                        <button class="copy-code-btn" onclick="copyRoomCode()" style="margin: 0 auto;">Copy Code</button>
+                    </div>
+                    <div class="game-variant" id="lobbyGameVariant" style="margin-top: 16px;"></div>
+                </div>
+                <div class="lobby-panel host-controls-panel" style="display: flex; flex-direction: column; justify-content: flex-start; align-items: center; height: 100%;">
+                    <h3 style="text-align:center; margin-bottom: 18px;">Host Controls</h3>
+                    <div class="variant-selector" style="width: 100%;">
+                        <label for="variantSelect">Game Variant</label>
+                        <select id="variantSelect" onchange="onVariantChanged(this.value)" style="width: 100%;">
+                            <option value="texas-holdem">Texas Hold'em</option>
+                            <option value="omaha">Omaha</option>
+                            <option value="omaha-hi-lo">Omaha Hi-Lo</option>
+                            <option value="five-card-draw">Five Card Draw</option>
+                            <option value="seven-card-stud">Seven Card Stud</option>
+                            <option value="seven-card-stud-hi-lo">Seven Card Stud Hi-Lo</option>
+                            <option value="razz">Razz</option>
+                            <option value="pineapple">Pineapple</option>
+                            <option value="crazy-pineapple">Crazy Pineapple</option>
+                            <option value="triple-draw">Triple Draw Lowball</option>
+                            <option value="badugi">Badugi</option>
+                            <option value="short-deck">Short Deck Hold'em</option>
+                            <option value="chinese-poker">Chinese Poker</option>
+                            <option value="courchevel">Courchevel</option>
+                            <option value="horse">HORSE</option>
+                            <option value="eight-game">8-Game Mix</option>
+                            <option value="dealers-choice">Dealer's Choice</option>
+                        </select>
+                    </div>
+                    <div class="blind-options-vertical" id="blindOptionsGroup" style="width: 100%;">
+                        <label class="blind-checkbox-label">
+                            <input type="checkbox" id="enableSmallBlind" checked>
+                            <span class="custom-checkbox"></span>
+                            Enable Small Blind
+                        </label>
+                        <label class="blind-checkbox-label">
+                            <input type="checkbox" id="enableBigBlind" checked>
+                            <span class="custom-checkbox"></span>
+                            Enable Big Blind
+                        </label>
+                    </div>
+                    <button id="startGameBtn" class="start-game-btn" onclick="startOnlineGame()" style="margin-top: 18px; width: 100%;">Start Game</button>
+                    <button class="back-btn" onclick="window.location.href='../Poker.html'" style="width: 100%;">Back to Main Menu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+    // Always clear poker game state when entering the lobby, so a new game starts fresh for all players
+    localStorage.removeItem('pokerGameState');
+    </script>
+    <script src="../lobby.js"></script>
+    <script>
+    // Helper to get query param
+    function getQueryParam(name) {
+        const url = new URL(window.location.href);
+        return url.searchParams.get(name);
+    }
+    // Copy code button handler
+    function copyRoomCode() {
+        var codeElem = document.getElementById('lobbyRoomCode');
+        var btn = document.querySelector('.copy-code-btn');
+        if (codeElem && btn) {
+            navigator.clipboard.writeText(codeElem.textContent.trim()).then(() => {
+                var oldText = btn.textContent;
+                btn.textContent = 'Copied!';
+                btn.disabled = true;
+                setTimeout(() => {
+                    btn.textContent = oldText;
+                    btn.disabled = false;
+                }, 3000);
+            });
+        }
+    }
+    // On load, add user to lobby if username param is present
+    document.addEventListener('DOMContentLoaded', function() {
+        var codeElem = document.getElementById('lobbyRoomCode');
+        var username = getQueryParam('username');
+        var lobbyCode = getQueryParam('lobbyCode');
+        // Always generate or use a code
+        var code = '';
+        if (codeElem && (!codeElem.textContent || codeElem.textContent.trim() === '')) {
+            code = lobbyCode || '';
+            if (!code) {
+                var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+                for (var i = 0; i < 4; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            codeElem.textContent = code;
+        } else if (codeElem) {
+            code = codeElem.textContent.trim();
+        }
+        // Add user to localStorage lobby
+        if (username && code) {
+            let roomData = JSON.parse(localStorage.getItem(code));
+            // If the room does not exist and a lobbyCode was provided, show error and do not create a new lobby
+            if (!roomData && lobbyCode) {
+                alert('Failed to connect: Lobby not found. Please check the code or try again.');
+                // Optionally, clear the code box for user convenience
+                if (codeElem) codeElem.textContent = '';
+                return;
+            }
+            // If the room does not exist and no lobbyCode was provided, create a new lobby
+            if (!roomData && !lobbyCode) {
+                roomData = {
+                    code: code,
+                    players: [],
+                    variant: 'texas-holdem',
+                    enableSmallBlind: true,
+                    enableBigBlind: true
+                };
+            }
+            // Only add the player if not already present
+            if (roomData && !roomData.players.find(p => p.name.trim().toLowerCase() === (username ? username.trim().toLowerCase() : ''))) {
+                // If there are no players, this user is host
+                const isHost = roomData.players.length === 0;
+                roomData.players.push({ name: username, isHost: isHost, chips: 1000 });
+            }
+            if (roomData) {
+                localStorage.setItem(code, JSON.stringify(roomData));
+                // Update UI
+                setTimeout(() => updateLobbyUI(code), 100);
+            }
+        }
+        // Always update UI on load and poll for changes
+        if (codeElem) {
+            const code = codeElem.textContent.trim();
+            setTimeout(() => updateLobbyUI(code), 200);
+            setInterval(() => updateLobbyUI(code), 1000);
+            // Poll for gameStarted
+            pollGameStarted(code);
+        }
+    });
+    // Minimal updateLobbyUI implementation
+    function updateLobbyUI(code) {
+        const playersList = document.getElementById('playersList');
+        if (!playersList) return;
+        let roomData = JSON.parse(localStorage.getItem(code));
+        playersList.innerHTML = '';
+        if (roomData && Array.isArray(roomData.players)) {
+            // Get last winner for crown
+            let lastWinner = localStorage.getItem('pokerLastWinner');
+            roomData.players.forEach(player => {
+                const li = document.createElement('li');
+                li.className = 'player-item' + (player.isHost ? ' host' : '');
+                let crown = (lastWinner && lastWinner === player.name) ? ' <span title="Winner" style="color:gold;font-size:1.2em;">&#x1F451;</span>' : '';
+                li.innerHTML = `<span>${player.name}${player.isHost ? ' (Host)' : ''}${crown}</span><span class="player-status">Ready</span>`;
+                playersList.appendChild(li);
+            });
+        }
+        // Host-only controls logic
+        var username = getQueryParam('username');
+        var isHost = false;
+        if (roomData && Array.isArray(roomData.players)) {
+            var hostPlayer = roomData.players.find(p => p.isHost);
+            // Compare trimmed and case-insensitive names to avoid whitespace/case issues
+            isHost = hostPlayer && hostPlayer.name.trim().toLowerCase() === (username ? username.trim().toLowerCase() : '');
+        }
+        // Controls
+        var variantSelect = document.getElementById('variantSelect');
+        var enableSmallBlind = document.getElementById('enableSmallBlind');
+        var enableBigBlind = document.getElementById('enableBigBlind');
+        var startGameBtn = document.getElementById('startGameBtn');
+        if (variantSelect) variantSelect.disabled = !isHost;
+        if (enableSmallBlind) enableSmallBlind.disabled = !isHost;
+        if (enableBigBlind) enableBigBlind.disabled = !isHost;
+        if (startGameBtn) {
+            startGameBtn.disabled = !isHost;
+            startGameBtn.title = isHost ? '' : 'Only the host can start the game';
+        }
+        if (variantSelect) variantSelect.title = isHost ? '' : 'Only the host can change the game variant';
+        if (enableSmallBlind) enableSmallBlind.title = isHost ? '' : 'Only the host can change blinds';
+        if (enableBigBlind) enableBigBlind.title = isHost ? '' : 'Only the host can change blinds';
+
+        // --- Share blind settings across all players ---
+        // On first load, initialize if not present
+        if (roomData) {
+            if (typeof roomData.enableSmallBlind !== 'boolean') roomData.enableSmallBlind = true;
+            if (typeof roomData.enableBigBlind !== 'boolean') roomData.enableBigBlind = true;
+        }
+        // Update checkboxes to reflect shared state
+        if (enableSmallBlind && roomData) enableSmallBlind.checked = !!roomData.enableSmallBlind;
+        if (enableBigBlind && roomData) enableBigBlind.checked = !!roomData.enableBigBlind;
+        // Only host can change, and changes are saved to localStorage and broadcast
+        if (isHost && enableSmallBlind && enableBigBlind) {
+            enableSmallBlind.onchange = function() {
+                let rd = JSON.parse(localStorage.getItem(code));
+                rd.enableSmallBlind = enableSmallBlind.checked;
+                localStorage.setItem(code, JSON.stringify(rd));
+            };
+            enableBigBlind.onchange = function() {
+                let rd = JSON.parse(localStorage.getItem(code));
+                rd.enableBigBlind = enableBigBlind.checked;
+                localStorage.setItem(code, JSON.stringify(rd));
+            };
+        } else {
+            if (enableSmallBlind) enableSmallBlind.onchange = null;
+            if (enableBigBlind) enableBigBlind.onchange = null;
+        }
+    }
+
+    // Start game: set gameStarted flag in localStorage for all clients to detect
+    function startOnlineGame() {
+        var codeElem = document.getElementById('lobbyRoomCode');
+        var code = codeElem ? codeElem.textContent.trim() : '';
+        var roomData = code ? JSON.parse(localStorage.getItem(code)) : null;
+        if (!roomData) return;
+        // Generate a new random handId for this game
+        var handId = Math.floor(Math.random() * 1e12).toString(36);
+        // Set gameStarted flag and handId
+        roomData.gameStarted = true;
+        roomData.handId = handId;
+        localStorage.setItem(code, JSON.stringify(roomData));
+        // Host will also redirect immediately
+        var players = roomData.players.map(p => encodeURIComponent(p.name)).join(',');
+        var variant = document.getElementById('variantSelect').value;
+        var url = `game.html?players=${players}&variant=${variant}&handId=${handId}`;
+        window.location.href = url;
+    }
+
+    // All clients: poll for gameStarted and redirect if set
+    function pollGameStarted(code) {
+        setInterval(function() {
+            var roomData = JSON.parse(localStorage.getItem(code));
+            if (roomData && roomData.gameStarted) {
+                var players = roomData.players.map(p => encodeURIComponent(p.name)).join(',');
+                var variant = roomData.variant || 'texas-holdem';
+                var handId = roomData.handId || (Math.floor(Math.random() * 1e12).toString(36));
+                var url = `game.html?players=${players}&variant=${variant}&handId=${handId}`;
+                window.location.href = url;
+            }
+        }, 700);
+    }
+    </script>
+</body>
+</html>
