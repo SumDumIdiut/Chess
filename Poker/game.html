@@ -417,6 +417,48 @@
 
 // --- Action Buttons Logic ---
 
+    function maybeBotPlay() {
+        // Only act if it's a bot's turn
+        const currentName = playerNames[currentPlayer];
+        // Find the bot in the lobby data
+        db.ref('lobbies/' + lobbyCode).get().then(snapshot => {
+            const lobby = snapshot.val();
+            if (!lobby || !Array.isArray(lobby.players)) return;
+            const player = lobby.players.find(p => p.name === currentName);
+            if (!player || !player.isBot) return;
+
+            // Simple bot logic: random action, but more likely to call
+            const maxBet = Math.max(...playerBets);
+            const myBet = playerBets[currentPlayer] || 0;
+            let possibleActions = [];
+            if (myBet < maxBet) {
+                possibleActions = ['fold', 'call', 'raise'];
+            } else {
+                possibleActions = ['check', 'raise'];
+            }
+            // Weighted: call/check > raise > fold
+            let action;
+            const r = Math.random();
+            if (possibleActions.includes('call') && r < 0.6) {
+                action = 'call';
+            } else if (possibleActions.includes('check') && r < 0.6) {
+                action = 'call'; // treat check as call for simplicity
+            } else if (r < 0.85) {
+                action = 'raise';
+            } else {
+                action = 'fold';
+            }
+
+            // For raise, pick a small random amount
+            if (action === 'raise') {
+                const betInput = document.getElementById('betAmount');
+                if (betInput) betInput.value = Math.floor(Math.random() * 40) + 10;
+            }
+
+            setTimeout(() => playerAction(action), 700 + Math.random() * 900); // delay for realism
+        });
+    }
+
     function playerAction(action) {
         // Only allow action if it's this player's turn
         const myNameNorm = myName.trim().toLowerCase();
@@ -482,7 +524,6 @@
     }
 
     function showActionButtons() {
-        // Only enable for the current player
         const myNameNorm = myName.trim().toLowerCase();
         const currentPlayerNameNorm = playerNames[currentPlayer].trim().toLowerCase();
         const isMyTurn = currentPlayerNameNorm === myNameNorm;
@@ -498,6 +539,9 @@
         callBtn.disabled = !isMyTurn;
         raiseBtn.disabled = !isMyTurn;
         betInput.querySelector('input').disabled = !isMyTurn;
+
+        // --- Let bots play automatically ---
+        maybeBotPlay();
     }
 
     function hideActionButtons() {
