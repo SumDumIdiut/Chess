@@ -195,7 +195,6 @@
       color: white;
       width: 100px;
     }
-    /* Modal and blur styles */
     .blurred {
       filter: blur(7px) brightness(0.7);
       pointer-events: none;
@@ -244,6 +243,18 @@
       background: linear-gradient(145deg, #059669, #10b981);
       transform: translateY(-2px);
     }
+    #betErrorMsg {
+      display: none;
+      background: #dc2626;
+      color: white;
+      font-weight: bold;
+      border-radius: 8px;
+      border: 2px solid #b91c1c;
+      padding: 16px 24px;
+      margin: 0 auto 18px auto;
+      max-width: 320px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -264,6 +275,7 @@
         <div class="community-cards" id="communityCards"></div>
       </div>
       <div class="players" id="playersContainer"></div>
+      <div id="betErrorMsg"></div>
       <div class="controls">
         <button class="control-btn fold" id="foldBtn" style="display: none;">Fold</button>
         <button class="control-btn call" id="callBtn" style="display: none;">Call</button>
@@ -275,7 +287,6 @@
       </div>
     </div>
   </div>
-  <!-- Rules Modal -->
   <div class="rules-modal-overlay" id="rulesModalOverlay" style="display:none;">
     <div class="rules-modal">
       <h2 id="modalVariantName"></h2>
@@ -284,24 +295,20 @@
     </div>
   </div>
   <script>
-    // --- Utility: Query Params ---
+    // --- Poker Game Variables and Setup ---
+    const SUITS = ['♠', '♥', '♦', '♣'];
+    const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
     function getQueryParam(name) {
       const url = new URL(window.location.href);
       return url.searchParams.get(name);
     }
-
-    // --- Player & Game Setup from lobby.html ---
     const playerNames = (getQueryParam('players') || '').split(',').map(n => n.trim()).filter(Boolean);
     const myName = getQueryParam('username') || getQueryParam('me') || playerNames[0] || 'You';
     const lobbyCode = getQueryParam('lobbyCode');
     const handId = getQueryParam('handId') || '';
     const variant = getQueryParam('variant') || 'texas-holdem';
-
-    // --- Firebase Setup ---
     const app = firebase.initializeApp(window.firebaseConfig);
     const db = firebase.database();
-
-    // --- Poker State ---
     let deck = [];
     let playerHands = [];
     let communityCards = [];
@@ -309,20 +316,11 @@
     let folded = [];
     let playerBets = [];
 
-    // --- Deck Utilities ---
-    const SUITS = ['♠', '♥', '♦', '♣'];
-    const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+    // --- Utility Functions ---
     function createDeck() {
-    const variant = getVariant();
-    let deck = [];
-    if (variant === "short-deck") {
-        // Remove 2-5 for Short Deck
-        const shortRanks = ['6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
-        for (const suit of SUITS) for (const rank of shortRanks) deck.push({ suit, rank });
-    } else {
-        for (const suit of SUITS) for (const rank of RANKS) deck.push({ suit, rank });
-    }
-    return deck;
+      let deck = [];
+      for (const suit of SUITS) for (const rank of RANKS) deck.push({ suit, rank });
+      return deck;
     }
     function seededShuffle(deck, seed) {
       let m = 0x80000000, a = 1103515245, c = 12345, state = seed;
@@ -339,8 +337,6 @@
       for (let i = 0; i < base.length; i++) hash = ((hash << 5) + hash) + base.charCodeAt(i);
       return Math.abs(hash);
     }
-
-    // --- UI Rendering ---
     function cardToHTML(card) {
       const color = (card.suit === '♥' || card.suit === '♦') ? 'red' : 'black';
       return `<div class="card ${color}">
@@ -348,64 +344,61 @@
         <div class="corner br">${card.rank}<br>${card.suit}</div>
         <div class="suit-center">${card.suit}</div>
       </div>`;
-        }
+    }
+
+    // --- Rendering Functions ---
     function renderPlayers() {
-        const playersDiv = document.getElementById('playersContainer');
-        if (!playersDiv) return;
-        // Get chips for each player from the lobby
-        db.ref('lobbies/' + lobbyCode).get().then(snapshot => {
-            let chipsMap = {};
-            if (snapshot.exists() && snapshot.val().players) {
-                snapshot.val().players.forEach(p => {
-                    chipsMap[p.name.trim().toLowerCase()] = p.chips ?? 1000;
-                });
+      const playersDiv = document.getElementById('playersContainer');
+      if (!playersDiv) return;
+      db.ref('lobbies/' + lobbyCode).get().then(snapshot => {
+        let chipsMap = {};
+        if (snapshot.exists() && snapshot.val().players) {
+          snapshot.val().players.forEach(p => {
+            chipsMap[p.name.trim().toLowerCase()] = p.chips ?? 1000;
+          });
+        }
+        playersDiv.innerHTML = '';
+        for (let i = 0; i < playerNames.length; i++) {
+          const playerName = playerNames[i];
+          const playerDiv = document.createElement('div');
+          playerDiv.className = 'player';
+          if (i === currentPlayer) playerDiv.classList.add('active');
+          if (folded[i]) playerDiv.classList.add('folded');
+          const nameElem = document.createElement('span');
+          nameElem.textContent = playerName;
+          playerDiv.appendChild(nameElem);
+          const chips = chipsMap[playerName.trim().toLowerCase()] ?? 1000;
+          const chipsElem = document.createElement('div');
+          chipsElem.style.fontSize = '0.95em';
+          chipsElem.style.color = '#a855f7';
+          chipsElem.textContent = `Chips: ${chips}`;
+          playerDiv.appendChild(chipsElem);
+          const bet = playerBets && playerBets[i] ? playerBets[i] : 0;
+          const betElem = document.createElement('div');
+          betElem.style.fontSize = '0.95em';
+          betElem.style.color = '#38bdf8';
+          betElem.textContent = `Bet: ${bet}`;
+          playerDiv.appendChild(betElem);
+          const cardsDiv = document.createElement('div');
+          cardsDiv.className = 'player-cards';
+          // Reveal all hands if river is dealt
+          if (communityCards.length === 5) {
+            playerHands[i]?.forEach(card => {
+              cardsDiv.innerHTML += cardToHTML(card);
+            });
+          } else if (playerName.trim().toLowerCase() === myName.trim().toLowerCase()) {
+            playerHands[i]?.forEach(card => {
+              cardsDiv.innerHTML += cardToHTML(card);
+            });
+          } else {
+            for (let j = 0; j < (playerHands[i]?.length || 2); j++) {
+              cardsDiv.innerHTML += `<div class="card back">🂠</div>`;
             }
-            playersDiv.innerHTML = ''; // <-- Move this here!
-            for (let i = 0; i < playerNames.length; i++) {
-                const playerName = playerNames[i];
-                const playerDiv = document.createElement('div');
-                playerDiv.className = 'player';
-
-                // Add player name
-                const nameElem = document.createElement('span');
-                nameElem.textContent = playerName;
-                playerDiv.appendChild(nameElem);
-
-                // Add credits/chips (purple)
-                const chips = chipsMap[playerName.trim().toLowerCase()] ?? 1000;
-                const chipsElem = document.createElement('div');
-                chipsElem.style.fontSize = '0.95em';
-                chipsElem.style.color = '#a855f7'; // purple
-                chipsElem.textContent = `Chips: ${chips}`;
-                playerDiv.appendChild(chipsElem);
-
-                // Add current bet
-                const bet = playerBets && playerBets[i] ? playerBets[i] : 0;
-                const betElem = document.createElement('div');
-                betElem.style.fontSize = '0.95em';
-                betElem.style.color = '#38bdf8';
-                betElem.textContent = `Bet: ${bet}`;
-                playerDiv.appendChild(betElem);
-
-                // Cards container
-                const cardsDiv = document.createElement('div');
-                cardsDiv.className = 'player-cards';
-
-                if (playerName.trim().toLowerCase() === myName.trim().toLowerCase()) {
-                    // Show my own cards using cardToHTML
-                    playerHands[i].forEach(card => {
-                        cardsDiv.innerHTML += cardToHTML(card);
-                    });
-                } else {
-                    // Show card backs for opponents
-                    for (let j = 0; j < (playerHands[i]?.length || 2); j++) {
-                        cardsDiv.innerHTML += `<div class="card back">🂠</div>`;
-                    }
-                }
-                playerDiv.appendChild(cardsDiv);
-                playersDiv.appendChild(playerDiv);
-            }
-        });
+          }
+          playerDiv.appendChild(cardsDiv);
+          playersDiv.appendChild(playerDiv);
+        }
+      });
     }
     function renderCommunityCards() {
       if (!Array.isArray(communityCards)) communityCards = [];
@@ -414,212 +407,6 @@
         ? communityCards.map(cardToHTML).join('')
         : `<div style="color:#a5b4fc; font-size:1.1em; opacity:0.7; padding:1vw 0;">No community cards yet</div>`;
     }
-
-// --- Action Buttons Logic ---
-
-    function playerAction(action) {
-        // Only allow action if it's this player's turn
-        const myNameNorm = myName.trim().toLowerCase();
-        const currentPlayerNameNorm = playerNames[currentPlayer].trim().toLowerCase();
-        if (myNameNorm !== currentPlayerNameNorm) return;
-
-        if (action === 'fold') {
-            folded[currentPlayer] = true;
-
-            // Check if only one player remains (everyone else folded)
-            const activePlayers = folded.map((f, idx) => !f ? idx : null).filter(idx => idx !== null);
-            if (activePlayers.length === 1) {
-                const winnerIdx = activePlayers[0];
-                const winnerName = playerNames[winnerIdx];
-                const reward = playerBets.reduce((a, b) => a + (b || 0), 0);
-
-                // Show winner overlay
-                showStatusOverlay(`<span style='color:#a855f7;'>${winnerName} Won The Round!<br><span style="color:#38bdf8;">${reward} Chips Awarded</span></span>`);
-
-                // Optionally, update chips in lobby (if you want to persist winnings)
-                db.ref('lobbies/' + lobbyCode).get().then(snapshot => {
-                    const lobby = snapshot.val();
-                    if (lobby && Array.isArray(lobby.players)) {
-                        const winnerPlayer = lobby.players.find(p => p.name.trim().toLowerCase() === winnerName.trim().toLowerCase());
-                        if (winnerPlayer) {
-                            winnerPlayer.chips = (winnerPlayer.chips || 1000) + reward;
-                            db.ref('lobbies/' + lobbyCode).set(lobby);
-                        }
-                    }
-                });
-
-                // End round after short delay
-                setTimeout(() => {
-                    db.ref('games/' + lobbyCode).remove().then(() => {
-                        window.location.href = `lobby.html?lobbyCode=${encodeURIComponent(lobbyCode)}&username=${encodeURIComponent(myName)}&justFinished=1`;
-                    });
-                }, 2200);
-                return;
-            }
-        } else if (action === 'call') {
-            // Match the highest bet
-            const maxBet = Math.max(...playerBets);
-            playerBets[currentPlayer] = maxBet;
-        } else if (action === 'raise') {
-            const betInput = document.getElementById('betAmount');
-            let raiseAmount = parseInt(betInput ? betInput.value : "0", 10);
-            if (isNaN(raiseAmount) || raiseAmount <= 0) raiseAmount = 10;
-            playerBets[currentPlayer] = Math.max(...playerBets) + raiseAmount;
-        }
-
-        // Advance to next player who hasn't folded
-        let nextPlayer = (currentPlayer + 1) % playerNames.length;
-        let attempts = 0;
-        while (folded[nextPlayer] && attempts < playerNames.length) {
-            nextPlayer = (nextPlayer + 1) % playerNames.length;
-            attempts++;
-        }
-        currentPlayer = nextPlayer;
-
-        saveGameState();
-        renderPlayers();
-        showActionButtons();
-    }
-
-    function showActionButtons() {
-        const myNameNorm = myName.trim().toLowerCase();
-        const currentPlayerNameNorm = playerNames[currentPlayer].trim().toLowerCase();
-        const isMyTurn = currentPlayerNameNorm === myNameNorm;
-        const foldBtn = document.getElementById('foldBtn');
-        const callBtn = document.getElementById('callBtn');
-        const raiseBtn = document.getElementById('raiseBtn');
-        const betInput = document.getElementById('betInputContainer');
-        foldBtn.style.display = 'inline-block';
-        callBtn.style.display = 'inline-block';
-        raiseBtn.style.display = 'inline-block';
-        betInput.style.display = 'inline-flex';
-        foldBtn.disabled = !isMyTurn;
-        callBtn.disabled = !isMyTurn;
-        raiseBtn.disabled = !isMyTurn;
-        betInput.querySelector('input').disabled = !isMyTurn;
-    }
-
-    function hideActionButtons() {
-        document.getElementById('foldBtn').style.display = 'none';
-        document.getElementById('callBtn').style.display = 'none';
-        document.getElementById('raiseBtn').style.display = 'none';
-        document.getElementById('betInputContainer').style.display = 'none';
-    }
-
-    // Attach event listeners after DOM is loaded
-    document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('foldBtn').onclick = function() { playerAction('fold'); };
-        document.getElementById('callBtn').onclick = function() { playerAction('call'); };
-        document.getElementById('raiseBtn').onclick = function() { playerAction('raise'); };
-
-        db.ref('games/' + lobbyCode).get().then(snapshot => {
-            if (!snapshot.exists()) {
-                startHand(); // This will also call renderPlayers, renderCommunityCards, showActionButtons
-            }
-        });
-    });
-    // --- Game State Sync ---
-    function saveGameState() {
-      if (!lobbyCode) return;
-      db.ref('games/' + lobbyCode).set({
-        playerHands, communityCards, currentPlayer, folded, playerBets
-      });
-    }
-    function loadGameState(callback) {
-      if (!lobbyCode) return false;
-      db.ref('games/' + lobbyCode).get().then(snapshot => {
-        const state = snapshot.val();
-        if (!state) { if (callback) callback(false); return false; }
-        playerHands = state.playerHands;
-        communityCards = state.communityCards;
-        currentPlayer = state.currentPlayer;
-        folded = state.folded;
-        playerBets = state.playerBets;
-        renderPlayers();
-        renderCommunityCards();
-        showActionButtons();
-        if (callback) callback(true);
-        return true;
-      });
-    }
-
-    if (lobbyCode) {
-        db.ref('games/' + lobbyCode).on('value', function(snapshot) {
-            const state = snapshot.val();
-            if (!state) return;
-            playerHands = state.playerHands;
-            communityCards = state.communityCards;
-            currentPlayer = state.currentPlayer;
-            folded = state.folded;
-            playerBets = state.playerBets;
-            renderPlayers();
-            renderCommunityCards();
-            showActionButtons();
-
-            // --- Show win message and redirect if game is over ---
-            if (state.gameOver) {
-                const winner = state.winnerName || "Someone";
-                showStatusOverlay(`<span style='color:#a855f7;'>${winner} wins the hand!</span>`);
-                setTimeout(() => {
-                    db.ref('games/' + lobbyCode).remove().then(() => {
-                        window.location.href = `lobby.html?lobbyCode=${encodeURIComponent(lobbyCode)}&username=${encodeURIComponent(myName)}&justFinished=1`;
-                    });
-                }, 2200);
-            }
-        });
-    }
-
-// --- Game Logic ---
-
-    // Always use Texas Hold'em
-    function getVariant() {
-        return 'texas-holdem';
-    }
-
-    // Call this to start a new hand
-    function startHand() {
-        let deck = [];
-        for (const suit of SUITS) for (const rank of RANKS) deck.push({ suit, rank });
-        const seed = getDeterministicSeed();
-        deck = seededShuffle(deck, seed);
-        playerHands = [];
-        communityCards = [];
-        folded = Array(playerNames.length).fill(false);
-        playerBets = Array(playerNames.length).fill(0);
-        window._pokerDeck = deck;
-
-        // Texas Hold'em: 2 cards per player, 5 community cards
-        for (let i = 0; i < playerNames.length; i++) playerHands.push([deck.pop(), deck.pop()]);
-        communityCards = [];
-
-        saveGameState();
-        renderPlayers();
-        renderCommunityCards();
-        showActionButtons();
-    }
-
-    // --- Community card logic for Hold'em ---
-    function maybeAutoReveal() {
-        // Flop, turn, river logic
-        if (communityCards.length === 0 && window._pokerDeck) {
-            window._pokerDeck.pop(); // burn
-            communityCards = [window._pokerDeck.pop(), window._pokerDeck.pop(), window._pokerDeck.pop()];
-            renderCommunityCards();
-            saveGameState();
-        } else if (communityCards.length === 3 && window._pokerDeck) {
-            window._pokerDeck.pop(); // burn
-            communityCards.push(window._pokerDeck.pop());
-            renderCommunityCards();
-            saveGameState();
-        } else if (communityCards.length === 4 && window._pokerDeck) {
-            window._pokerDeck.pop(); // burn
-            communityCards.push(window._pokerDeck.pop());
-            renderCommunityCards();
-            saveGameState();
-        }
-    }
-
-    // --- Overlay helpers ---
     function showStatusOverlay(msg) {
       const overlay = document.getElementById('statusOverlay');
       const msgDiv = document.getElementById('statusOverlayMsg');
@@ -630,10 +417,16 @@
       const overlay = document.getElementById('statusOverlay');
       overlay.style.display = 'none';
     }
+    function showBetError(msg) {
+      const err = document.getElementById('betErrorMsg');
+      err.textContent = msg;
+      err.style.display = 'block';
+      setTimeout(() => { err.style.display = 'none'; }, 2200);
+    }
 
-    // --- Poker variant rules mapping ---
+    // --- Modal and Rules ---
     const pokerVariantRules = {
-    "texas-holdem": {
+      "texas-holdem": {
         name: "Texas Hold'em",
         rules: `
         <ul>
@@ -644,15 +437,8 @@
             <li>Standard hand rankings apply.</li>
         </ul>
         `
-    }
+      }
     };
-
-    // Get variant from query param or default
-    function getVariant() {
-      return getQueryParam('variant') || 'texas-holdem';
-    }
-
-    // --- Modal logic for rules overlay and blur ---
     function showRulesModal() {
       const overlay = document.getElementById('rulesModalOverlay');
       const main = document.getElementById('mainContainer');
@@ -667,7 +453,7 @@
       main.classList.remove('blurred');
     }
     function renderModalRules() {
-      const variant = getVariant();
+      const variant = getQueryParam('variant') || 'texas-holdem';
       const modalRulesContent = document.getElementById('modalRulesContent');
       const modalVariantName = document.getElementById('modalVariantName');
       if (pokerVariantRules[variant]) {
@@ -679,25 +465,250 @@
       }
     }
 
-    // --- Button Event Handlers ---
-    document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('foldBtn').onclick = function() { playerAction('fold'); };
-        document.getElementById('callBtn').onclick = function() { playerAction('call'); };
-        document.getElementById('raiseBtn').onclick = function() { playerAction('raise'); };
-        // Set variant name in header
-        const variantObj = pokerVariantRules[getVariant()];
-        document.getElementById('variantName').textContent = variantObj ? variantObj.name : getVariant();
-        // Start game if no state exists yet
-        db.ref('games/' + lobbyCode).get().then(snapshot => {
-            if (!snapshot.exists()) {
-                startHand();
-                // Ensure UI is rendered after starting a new hand
-                renderPlayers();
-                renderCommunityCards();
-                showActionButtons();
+    // --- Bot and Game Logic ---
+    function isBotPlayer(index, callback) {
+      db.ref('lobbies/' + lobbyCode).get().then(snapshot => {
+        if (!snapshot.exists()) return callback(false);
+        const lobby = snapshot.val();
+        if (!lobby.players || !lobby.players[index]) return callback(false);
+        const isBot = !!lobby.players[index].isBot;
+        callback(isBot);
+      });
+    }
+    function playBotTurn() {
+      isBotPlayer(currentPlayer, function(isBot) {
+        if (!isBot) return;
+        setTimeout(() => {
+          const myBet = playerBets[currentPlayer] || 0;
+          const maxBet = Math.max(...playerBets);
+          const canCall = myBet < maxBet;
+          const canRaise = true;
+          let possibleActions = [];
+          if (canCall) possibleActions.push('call');
+          if (canRaise) possibleActions.push('raise');
+          if (communityCards.length === 5) possibleActions.push('fold');
+          if (communityCards.length < 5) {
+            const action = possibleActions[Math.floor(Math.random() * possibleActions.length)];
+            if (action === 'call') {
+              playerAction('call', true);
+            } else {
+              const raiseAmount = Math.floor(Math.random() * 91) + 10;
+              playerAction('raise', true, raiseAmount);
             }
+            return;
+          }
+          // On river, allow fold/call/raise
+          const weights = possibleActions.map(a => a === 'fold' ? 1 : 3);
+          let weighted = [];
+          possibleActions.forEach((a, i) => { for (let j = 0; j < weights[i]; j++) weighted.push(a); });
+          const action = weighted[Math.floor(Math.random() * weighted.length)];
+          if (action === 'fold') {
+            playerAction('fold', true);
+          } else if (action === 'call') {
+            playerAction('call', true);
+          } else if (action === 'raise') {
+            const raiseAmount = Math.floor(Math.random() * 91) + 10;
+            playerAction('raise', true, raiseAmount);
+          }
+        }, 400);
+      });
+    }
+
+    // --- Game Loop and Betting Logic ---
+    function gameLoop() {
+      renderPlayers();
+      renderCommunityCards();
+      showActionButtons();
+      const activePlayers = folded.map((f, idx) => !f ? idx : null).filter(idx => idx !== null);
+      if (activePlayers.length === 1) {
+        const winnerIdx = activePlayers[0];
+        const winnerName = playerNames[winnerIdx];
+        const reward = playerBets.reduce((a, b) => a + (b || 0), 0);
+        showStatusOverlay(`<span style='color:#a855f7;'>${winnerName} Won The Round!<br><span style="color:#38bdf8;">${reward} Chips Awarded</span></span>`);
+        db.ref('lobbies/' + lobbyCode).get().then(snapshot => {
+          const lobby = snapshot.val();
+          if (lobby && Array.isArray(lobby.players)) {
+            const winnerPlayer = lobby.players.find(p => p.name.trim().toLowerCase() === winnerName.trim().toLowerCase());
+            if (winnerPlayer) {
+              winnerPlayer.chips = (winnerPlayer.chips || 1000) + reward;
+              db.ref('lobbies/' + lobbyCode).set(lobby);
+            }
+          }
         });
+        setTimeout(() => {
+          db.ref('games/' + lobbyCode).remove().then(() => {
+            window.location.href = `lobby.html?lobbyCode=${encodeURIComponent(lobbyCode)}&username=${encodeURIComponent(myName)}&justFinished=1`;
+          });
+        }, 2200);
+        return;
+      }
+      const myNameNorm = myName.trim().toLowerCase();
+      isBotPlayer(currentPlayer, function(isBot) {
+        // Only the host (first player) runs bot turns
+        if (isBot && myNameNorm === playerNames[0].trim().toLowerCase()) {
+          playBotTurn();
+        }
+      });
+    }
+
+    function isBettingRoundOver() {
+      const activePlayers = folded.map((f, idx) => !f ? idx : null).filter(idx => idx !== null);
+      if (activePlayers.length <= 1) return true;
+      const activeBets = activePlayers.map(i => playerBets[i] || 0);
+      return activeBets.every(bet => bet === activeBets[0]);
+    }
+
+    function playerAction(action, force = false, botRaiseAmount = null) {
+      const myNameNorm = myName.trim().toLowerCase();
+      const currentPlayerNameNorm = playerNames[currentPlayer].trim().toLowerCase();
+      if (!force && myNameNorm !== currentPlayerNameNorm) return;
+      let chips = 1000;
+      const playerName = playerNames[currentPlayer];
+      db.ref('lobbies/' + lobbyCode).get().then(snapshot => {
+        if (snapshot.exists() && snapshot.val().players) {
+          const playerObj = snapshot.val().players.find(p => p.name.trim().toLowerCase() === playerName.trim().toLowerCase());
+          if (playerObj) chips = playerObj.chips ?? 1000;
+        }
+        if (action === 'fold') {
+          folded[currentPlayer] = true;
+        } else if (action === 'call') {
+          const maxBet = Math.max(...playerBets);
+          const callAmount = maxBet - (playerBets[currentPlayer] || 0);
+          const actualCall = Math.min(callAmount, chips);
+          if (actualCall < callAmount) {
+            showBetError("You don't have enough chips to call!");
+            return;
+          }
+          playerBets[currentPlayer] = (playerBets[currentPlayer] || 0) + actualCall;
+        } else if (action === 'raise') {
+          const betInput = document.getElementById('betAmount');
+          let raiseAmount = botRaiseAmount !== null ? botRaiseAmount : parseInt(betInput ? betInput.value : "0", 10);
+          if (isNaN(raiseAmount) || raiseAmount <= 0) raiseAmount = 10;
+          const maxBet = Math.max(...playerBets);
+          let totalBet = maxBet + raiseAmount;
+          if (totalBet > chips) {
+            showBetError("You cannot bet more than your available chips!");
+            return;
+          }
+          playerBets[currentPlayer] = totalBet;
+          if (betInput && botRaiseAmount === null) betInput.value = raiseAmount;
+        }
+        let nextPlayer = (currentPlayer + 1) % playerNames.length;
+        let attempts = 0;
+        while (folded[nextPlayer] && attempts < playerNames.length) {
+          nextPlayer = (nextPlayer + 1) % playerNames.length;
+          attempts++;
+        }
+        currentPlayer = nextPlayer;
+        saveGameState();
+
+        // Only reveal community cards if betting round is over
+        if (isBettingRoundOver()) {
+          maybeAutoReveal();
+        }
+
+        gameLoop();
+      });
+    }
+
+    function showActionButtons() {
+      const myNameNorm = myName.trim().toLowerCase();
+      const currentPlayerNameNorm = playerNames[currentPlayer].trim().toLowerCase();
+      const isMyTurn = currentPlayerNameNorm === myNameNorm;
+      const foldBtn = document.getElementById('foldBtn');
+      const callBtn = document.getElementById('callBtn');
+      const raiseBtn = document.getElementById('raiseBtn');
+      const betInput = document.getElementById('betAmount');
+      const betInputContainer = document.getElementById('betInputContainer');
+      foldBtn.style.display = 'inline-block';
+      callBtn.style.display = 'inline-block';
+      raiseBtn.style.display = 'inline-block';
+      betInputContainer.style.display = 'inline-flex';
+      foldBtn.disabled = !isMyTurn;
+      callBtn.disabled = !isMyTurn;
+      raiseBtn.disabled = !isMyTurn;
+      betInput.disabled = !isMyTurn;
+      let chips = 1000;
+      db.ref('lobbies/' + lobbyCode).get().then(snapshot => {
+        if (snapshot.exists() && snapshot.val().players) {
+          const playerObj = snapshot.val().players.find(p => p.name.trim().toLowerCase() === playerNames[currentPlayer].trim().toLowerCase());
+          if (playerObj) chips = playerObj.chips ?? 1000;
+        }
+        const maxBet = Math.max(...playerBets);
+        const maxRaise = Math.max(1, chips - maxBet);
+        betInput.max = maxRaise;
+        if (parseInt(betInput.value, 10) > maxRaise) betInput.value = maxRaise;
+      });
+    }
+
+    function saveGameState() {
+      if (!lobbyCode) return;
+      db.ref('games/' + lobbyCode).set({
+        playerHands, communityCards, currentPlayer, folded, playerBets
+      });
+    }
+
+    function maybeAutoReveal() {
+      // Prevent revealing more than 5 community cards
+      if (!window._pokerDeck || communityCards.length >= 5) return;
+      if (communityCards.length === 0) {
+        window._pokerDeck.pop();
+        communityCards = [window._pokerDeck.pop(), window._pokerDeck.pop(), window._pokerDeck.pop()];
+        renderCommunityCards();
+        saveGameState();
+      } else if (communityCards.length === 3) {
+        window._pokerDeck.pop();
+        communityCards.push(window._pokerDeck.pop());
+        renderCommunityCards();
+        saveGameState();
+      } else if (communityCards.length === 4) {
+        window._pokerDeck.pop();
+        communityCards.push(window._pokerDeck.pop());
+        renderCommunityCards();
+        saveGameState();
+      }
+    }
+
+    function startHand() {
+      let deck = createDeck();
+      const seed = getDeterministicSeed();
+      deck = seededShuffle(deck, seed);
+      playerHands = [];
+      communityCards = [];
+      folded = Array(playerNames.length).fill(false);
+      playerBets = Array(playerNames.length).fill(0);
+      window._pokerDeck = deck;
+      for (let i = 0; i < playerNames.length; i++) playerHands.push([deck.pop(), deck.pop()]);
+      communityCards = [];
+      saveGameState();
+      gameLoop();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('foldBtn').onclick = function() { playerAction('fold'); };
+      document.getElementById('callBtn').onclick = function() { playerAction('call'); };
+      document.getElementById('raiseBtn').onclick = function() { playerAction('raise'); };
+      const variantObj = pokerVariantRules[variant];
+      document.getElementById('variantName').textContent = variantObj ? variantObj.name : variant;
+      db.ref('games/' + lobbyCode).get().then(snapshot => {
+        if (!snapshot.exists()) {
+          startHand();
+        }
+      });
     });
+
+    if (lobbyCode) {
+      db.ref('games/' + lobbyCode).on('value', function(snapshot) {
+        const state = snapshot.val();
+        if (!state) return;
+        playerHands = state.playerHands;
+        communityCards = state.communityCards;
+        currentPlayer = state.currentPlayer;
+        folded = state.folded;
+        playerBets = state.playerBets;
+        gameLoop();
+      });
+    }
   </script>
 </body>
 </html>
