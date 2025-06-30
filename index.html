@@ -4,6 +4,23 @@
   <meta charset="UTF-8" />
   <title>Main Menu</title>
   <style>
+    body { /* ...existing styles... */ }
+    #mainMenu { /* ...existing styles... */ }
+  </style>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <!-- Your Firebase config -->
+  <script src="firebase-config.js"></script>
+  <script>
+    // Initialize Firebase
+    const app = firebase.initializeApp(window.firebaseConfig);
+    const db = firebase.database();
+  </script>
+</head>
+  <meta charset="UTF-8" />
+  <title>Main Menu</title>
+  <style>
     body {
       background: linear-gradient(135deg, #1a1a2e, #16213e);
       color: white;
