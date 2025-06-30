@@ -2,387 +2,306 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Poker Menu</title>
+  <title>Poker Game</title>
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <!-- Your Firebase config -->
   <script src="../firebase-config.js"></script>
-  <script>
-    // Initialize Firebase
-    const app = firebase.initializeApp(window.firebaseConfig);
-    const db = firebase.database();
-  </script>
-  <!-- Your main JS here -->
-</head>
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #1a1a3a, #2d1b69, #4c1d95, #5b21b6);
-            min-height: 100vh;
-            color: white;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            max-width: 95vw;
-            width: 100%;
-            margin: 0 auto;
-            padding: 2vw;
-            box-sizing: border-box;
-        }
-        .game-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .game-header h1 {
-            font-size: 2.5em;
-            color: #8b5cf6;
-        }
-        .variant-info {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .table-area {
-            background: rgba(30, 27, 75, 0.5);
-            border-radius: 1.2em;
-            border: 0.12em solid #8b5cf6;
-            min-height: 18vw;
-            padding: 1vw;
-            margin-bottom: 1.5vw;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        .poker-table {
-            background: radial-gradient(ellipse, #2563eb, #1e40af);
-            border: 0.5em solid #4c1d95;
-            border-radius: 7vw;
-            padding: 2vw;
-            margin: 1vw auto;
-            min-height: 12vw;
-            width: 100%;
-            max-width: 100vw;
-            position: relative;
-            box-sizing: border-box;
-            box-shadow: inset 0 0 2vw rgba(0,0,0,0.5);
-        }
-        .community-cards {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin: 20px 0;
-        }
-        .card {
-            width: 68px;
-            height: 96px;
-            background: white;
-            border: 1.5px solid #222;
-            border-radius: 9px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: flex-start;
-            font-weight: bold;
-            font-size: 1.25em;
-            padding: 7px 8px 5px 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-            transition: transform 0.3s ease;
-            position: relative;
-            background: repeating-linear-gradient(135deg, #fff, #fff 10px, #f3f3f3 16px, #fff 28px);
-        }
-        .community-cards .card {
-            width: 68px;
-            height: 96px;
-            font-size: 1.25em;
-            padding: 7px 8px 5px 10px;
-            min-width: 48px;
-            min-height: 68px;
-            max-width: 90px;
-            max-height: 120px;
-        }
-        .card.red { color: #d32f2f; }
-        .card.black { color: #222; }
-        .card .corner {
-            position: absolute;
-            font-size: 0.95em;
-            line-height: 1;
-        }
-        .card .corner.tl {
-            top: 3px; left: 5px;
-            text-align: left;
-        }
-        .card .corner.br {
-            bottom: 3px; right: 5px;
-            text-align: right;
-            transform: rotate(180deg);
-        }
-        .card .suit-center {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 1.3em;
-            opacity: 0.7;
-        }
-        .card.back {
-            background: linear-gradient(135deg, #3b82f6 60%, #8b5cf6 100%);
-            color: white;
-            justify-content: center;
-            align-items: center;
-        }
-        .players {
-            display: flex;
-            justify-content: space-around;
-            margin: 20px 0;
-            flex-wrap: wrap;
-        }
-        .player {
-            background: rgba(30, 27, 75, 0.7);
-            border: 0.18em solid #8b5cf6;
-            border-radius: 1em;
-            padding: 0.5vw;
-            text-align: center;
-            min-width: 7vw;
-            margin: 0.5vw;
-            font-size: 1em;
-            box-sizing: border-box;
-        }
-        .player.active {
-            border-color: #3b82f6;
-            background: rgba(59, 130, 246, 0.2);
-        }
-        .player.folded {
-            opacity: 0.5;
-            border-color: #6b7280;
-        }
-        .player-cards {
-            display: flex;
-            justify-content: center;
-            gap: 5px;
-            margin: 10px 0;
-        }
-        .controls {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin: 20px 0;
-            flex-wrap: wrap;
-        }
-        .control-btn {
-            padding: 12px 24px;
-            font-size: 1.1em;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: bold;
-        }
-        .control-btn.fold { background: #7c3aed; color: white; }
-        .control-btn.call { background: #3b82f6; color: white; }
-        .control-btn.raise { background: #8b5cf6; color: white; }
-        .control-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        }
-        .control-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .bet-input {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 10px 0;
-        }
-        .bet-input input {
-            padding: 8px;
-            border: 2px solid #8b5cf6;
-            border-radius: 5px;
-            background: rgba(30, 27, 75, 0.7);
-            color: white;
-            width: 100px;
-        }
-        /* Modal and blur styles */
-        .blurred {
-            filter: blur(7px) brightness(0.7);
-            pointer-events: none;
-            user-select: none;
-        }
-        .rules-modal-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(20, 16, 40, 0.85);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .rules-modal {
-            background: rgba(30, 27, 75, 0.98);
-            border: 2.5px solid #8b5cf6;
-            border-radius: 18px;
-            box-shadow: 0 8px 32px rgba(59,130,246,0.25);
-            padding: 36px 32px 28px 32px;
-            max-width: 600px;
-            width: 95vw;
-            color: #fff;
-            text-align: left;
-            position: relative;
-        }
-        .rules-modal h2 {
-            color: #a855f7;
-            margin-top: 0;
-        }
-        .rules-modal .ok-btn {
-            display: block;
-            margin: 32px auto 0 auto;
-            padding: 16px 38px;
-            font-size: 1.2em;
-            background: linear-gradient(145deg, #10b981, #059669);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: bold;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
-            transition: all 0.2s;
-        }
-        .rules-modal .ok-btn:hover {
-            background: linear-gradient(145deg, #059669, #10b981);
-            transform: translateY(-2px);
-        }
-    </style>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(135deg, #1a1a3a, #2d1b69, #4c1d95, #5b21b6);
+      min-height: 100vh;
+      color: white;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 95vw;
+      width: 100%;
+      margin: 0 auto;
+      padding: 2vw;
+      box-sizing: border-box;
+    }
+    .game-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .game-header h1 {
+      font-size: 2.5em;
+      color: #8b5cf6;
+    }
+    .variant-info {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .table-area {
+      background: rgba(30, 27, 75, 0.5);
+      border-radius: 1.2em;
+      border: 0.12em solid #8b5cf6;
+      min-height: 18vw;
+      padding: 1vw;
+      margin-bottom: 1.5vw;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .poker-table {
+      background: radial-gradient(ellipse, #2563eb, #1e40af);
+      border: 0.5em solid #4c1d95;
+      border-radius: 7vw;
+      padding: 2vw;
+      margin: 1vw auto;
+      min-height: 12vw;
+      width: 100%;
+      max-width: 100vw;
+      position: relative;
+      box-sizing: border-box;
+      box-shadow: inset 0 0 2vw rgba(0,0,0,0.5);
+    }
+    .community-cards {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 20px 0;
+    }
+    .card {
+      width: 68px;
+      height: 96px;
+      background: white;
+      border: 1.5px solid #222;
+      border-radius: 9px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: flex-start;
+      font-weight: bold;
+      font-size: 1.25em;
+      padding: 7px 8px 5px 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+      transition: transform 0.3s ease;
+      position: relative;
+      background: repeating-linear-gradient(135deg, #fff, #fff 10px, #f3f3f3 16px, #fff 28px);
+    }
+    .community-cards .card {
+      width: 68px;
+      height: 96px;
+      font-size: 1.25em;
+      padding: 7px 8px 5px 10px;
+      min-width: 48px;
+      min-height: 68px;
+      max-width: 90px;
+      max-height: 120px;
+    }
+    .card.red { color: #d32f2f; }
+    .card.black { color: #222; }
+    .card .corner {
+      position: absolute;
+      font-size: 0.95em;
+      line-height: 1;
+    }
+    .card .corner.tl {
+      top: 3px; left: 5px;
+      text-align: left;
+    }
+    .card .corner.br {
+      bottom: 3px; right: 5px;
+      text-align: right;
+      transform: rotate(180deg);
+    }
+    .card .suit-center {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.3em;
+      opacity: 0.7;
+    }
+    .card.back {
+      background: linear-gradient(135deg, #3b82f6 60%, #8b5cf6 100%);
+      color: white;
+      justify-content: center;
+      align-items: center;
+    }
+    .players {
+      display: flex;
+      justify-content: space-around;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    .player {
+      background: rgba(30, 27, 75, 0.7);
+      border: 0.18em solid #8b5cf6;
+      border-radius: 1em;
+      padding: 0.5vw;
+      text-align: center;
+      min-width: 7vw;
+      margin: 0.5vw;
+      font-size: 1em;
+      box-sizing: border-box;
+    }
+    .player.active {
+      border-color: #3b82f6;
+      background: rgba(59, 130, 246, 0.2);
+    }
+    .player.folded {
+      opacity: 0.5;
+      border-color: #6b7280;
+    }
+    .player-cards {
+      display: flex;
+      justify-content: center;
+      gap: 5px;
+      margin: 10px 0;
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    .control-btn {
+      padding: 12px 24px;
+      font-size: 1.1em;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: bold;
+    }
+    .control-btn.fold { background: #7c3aed; color: white; }
+    .control-btn.call { background: #3b82f6; color: white; }
+    .control-btn.raise { background: #8b5cf6; color: white; }
+    .control-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .control-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .bet-input {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 0;
+    }
+    .bet-input input {
+      padding: 8px;
+      border: 2px solid #8b5cf6;
+      border-radius: 5px;
+      background: rgba(30, 27, 75, 0.7);
+      color: white;
+      width: 100px;
+    }
+    /* Modal and blur styles */
+    .blurred {
+      filter: blur(7px) brightness(0.7);
+      pointer-events: none;
+      user-select: none;
+    }
+    .rules-modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(20, 16, 40, 0.85);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .rules-modal {
+      background: rgba(30, 27, 75, 0.98);
+      border: 2.5px solid #8b5cf6;
+      border-radius: 18px;
+      box-shadow: 0 8px 32px rgba(59,130,246,0.25);
+      padding: 36px 32px 28px 32px;
+      max-width: 600px;
+      width: 95vw;
+      color: #fff;
+      text-align: left;
+      position: relative;
+    }
+    .rules-modal h2 {
+      color: #a855f7;
+      margin-top: 0;
+    }
+    .rules-modal .ok-btn {
+      display: block;
+      margin: 32px auto 0 auto;
+      padding: 16px 38px;
+      font-size: 1.2em;
+      background: linear-gradient(145deg, #10b981, #059669);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+      transition: all 0.2s;
+    }
+    .rules-modal .ok-btn:hover {
+      background: linear-gradient(145deg, #059669, #10b981);
+      transform: translateY(-2px);
+    }
+  </style>
 </head>
 <body>
-    <!-- Status Message Overlay -->
-    <div id="statusOverlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:1000; pointer-events:none;">
-        <div id="statusOverlayMsg" style="position:absolute; top:40vh; left:50%; transform:translate(-50%, -50%); font-size:2.5em; color:#a855f7; background:rgba(30,27,75,0.92); border-radius:18px; padding:32px 48px; font-weight:bold; box-shadow:0 8px 32px rgba(168,85,247,0.18); text-align:center;"></div>
+  <!-- Status Message Overlay -->
+  <div id="statusOverlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:1000; pointer-events:none;">
+    <div id="statusOverlayMsg" style="position:absolute; top:40vh; left:50%; transform:translate(-50%, -50%); font-size:2.5em; color:#a855f7; background:rgba(30,27,75,0.92); border-radius:18px; padding:32px 48px; font-weight:bold; box-shadow:0 8px 32px rgba(168,85,247,0.18); text-align:center;"></div>
+  </div>
+  <div class="container" id="mainContainer">
+    <div class="game-header">
+      <h1>Poker</h1>
+      <div class="variant-info">
+        <span id="variantName"></span>
+        <button onclick="showRulesModal()" style="margin-left:12px; font-size:1em; background:#8b5cf6; color:white; border:none; border-radius:6px; padding:6px 18px; cursor:pointer;">Rules</button>
+      </div>
     </div>
-    <div class="container" id="mainContainer">
-        <div class="game-header">
-            <!-- Removed Poker Table heading and variant info bar -->
+    <div class="table-area" id="tableArea">
+      <div class="poker-table">
+        <div class="community-cards" id="communityCards"></div>
+      </div>
+      <div class="players" id="playersContainer"></div>
+      <div class="controls">
+        <button class="control-btn fold" id="foldBtn" style="display: none;">Fold</button>
+        <button class="control-btn call" id="callBtn" style="display: none;">Call</button>
+        <button class="control-btn raise" id="raiseBtn" style="display: none;">Raise</button>
+        <div class="bet-input" id="betInputContainer">
+          <label for="betAmount" title="Enter the amount you want to raise by">Raise Amount:</label>
+          <input type="number" id="betAmount" min="1" step="1" placeholder="Enter raise amount" value="10" style="width: 120px;">
         </div>
-        <div class="table-area" id="tableArea">
-            <div class="poker-table">
-                <div class="community-cards" id="communityCards"></div>
-            </div>
-            <div class="players" id="playersContainer"></div>
-            <div class="controls">
-                <button class="control-btn fold" onclick="playerAction('fold')" id="foldBtn" style="display: none;">Fold</button>
-                <button class="control-btn call" onclick="playerAction('call')" id="callBtn" style="display: none;">Call</button>
-                <button class="control-btn raise" onclick="playerAction('raise')" id="raiseBtn" style="display: none;">Raise</button>
-                <div class="bet-input" id="betInputContainer">
-                    <label for="betAmount" title="Enter the amount you want to raise by">Raise Amount:</label>
-                    <input type="number" id="betAmount" min="1" step="1" placeholder="Enter raise amount" value="10" style="width: 120px;">
-                </div>
-                <button class="control-btn" id="revealFlopBtn" style="display:none; background: #fbbf24; color: #222;">Reveal Flop</button>
-                <button class="control-btn" id="revealTurnBtn" style="display:none; background: #f59e42; color: #222;">Reveal Turn</button>
-                <button class="control-btn" id="revealRiverBtn" style="display:none; background: #f472b6; color: #222;">Reveal River</button>
-                <button class="control-btn" id="nextHandBtn" style="display:none; margin-left:20px; background: #10b981; color: white;">Next Hand</button>
-            </div>
-        </div>
+      </div>
     </div>
-    <script src="game.js"></script>
-    <script>
-    // Parse player names from query param
+  </div>
+  <!-- Rules Modal -->
+  <div class="rules-modal-overlay" id="rulesModalOverlay" style="display:none;">
+    <div class="rules-modal">
+      <h2 id="modalVariantName"></h2>
+      <div id="modalRulesContent"></div>
+      <button class="ok-btn" onclick="hideRulesModal()">OK</button>
+    </div>
+  </div>
+  <script>
+    // --- Utility: Query Params ---
     function getQueryParam(name) {
-        const url = new URL(window.location.href);
-        return url.searchParams.get(name);
+      const url = new URL(window.location.href);
+      return url.searchParams.get(name);
     }
-    const playerNames = (getQueryParam('players') || 'You,Alice,Bob,Charlie').split(',');
-    // Remove whitespace from player names (for ?players=You, Bob, Charlie)
-    for (let i = 0; i < playerNames.length; i++) playerNames[i] = playerNames[i].trim();
 
-    // --- Firebase Multiplayer Sync Logic ---
-    // Firebase configuration (API key removed for security)
-    // const firebaseConfig = { ... };
-    // const app = firebase.initializeApp(firebaseConfig);
-    // const analytics = firebase.analytics(app);
-    // const db = firebase.database();
-    // Please insert your own Firebase config here to enable multiplayer.
-    // See https://firebase.google.com/docs/web/setup for details.
-
-    // Get lobby code from query param
+    // --- Player & Game Setup from lobby.html ---
+    const playerNames = (getQueryParam('players') || '').split(',').map(n => n.trim()).filter(Boolean);
+    const myName = getQueryParam('username') || getQueryParam('me') || playerNames[0] || 'You';
     const lobbyCode = getQueryParam('lobbyCode');
+    const handId = getQueryParam('handId') || '';
+    const variant = getQueryParam('variant') || 'texas-holdem';
 
-    function saveGameState() {
-        if (!lobbyCode) return;
-        const state = {
-            playerHands,
-            communityCards,
-            currentPlayer,
-            folded,
-            playerBets
-        };
-        db.ref('games/' + lobbyCode).set(state);
-    }
+    // --- Firebase Setup ---
+    const app = firebase.initializeApp(window.firebaseConfig);
+    const db = firebase.database();
 
-    function loadGameState(callback) {
-        if (!lobbyCode) return false;
-        db.ref('games/' + lobbyCode).get().then(snapshot => {
-            if (!snapshot.exists()) { if (callback) callback(false); return false; }
-            const state = snapshot.val();
-            if (!state) { if (callback) callback(false); return false; }
-            playerHands = state.playerHands;
-            communityCards = state.communityCards;
-            currentPlayer = state.currentPlayer;
-            folded = state.folded;
-            playerBets = state.playerBets;
-            renderPlayers();
-            renderCommunityCards();
-            showActionButtons();
-            if (callback) callback(true);
-            return true;
-        });
-    }
-
-    // Listen for game state changes
-    if (lobbyCode) {
-        db.ref('games/' + lobbyCode).on('value', function(snapshot) {
-            const state = snapshot.val();
-            if (!state) return;
-            playerHands = state.playerHands;
-            communityCards = state.communityCards;
-            currentPlayer = state.currentPlayer;
-            folded = state.folded;
-            playerBets = state.playerBets;
-            renderPlayers();
-            renderCommunityCards();
-            showActionButtons();
-        });
-    }
-
-    // --- Poker Game Logic ---
-    // --- Poker Game Logic ---
-    // Card utilities
-    const SUITS = ['♠', '♥', '♦', '♣'];
-    const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
-    function createDeck() {
-        const deck = [];
-        for (const suit of SUITS) {
-            for (const rank of RANKS) {
-                deck.push({ suit, rank });
-            }
-        }
-        return deck;
-    }
-    function shuffle(deck) {
-        for (let i = deck.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [deck[i], deck[j]] = [deck[j], deck[i]];
-        }
-        return deck;
-    }
-    function cardToHTML(card) {
-        const color = (card.suit === '♥' || card.suit === '♦') ? 'red' : 'black';
-        return `<div class="card ${color}">
-            <div class="corner tl">${card.rank}<br>${card.suit}</div>
-            <div class="corner br">${card.rank}<br>${card.suit}</div>
-            <div class="suit-center">${card.suit}</div>
-        </div>`;
-    }
-
-    // Game state
+    // --- Poker State ---
     let deck = [];
     let playerHands = [];
     let communityCards = [];
@@ -390,153 +309,180 @@
     let folded = [];
     let playerBets = [];
 
-    // Deterministic dealing for all clients: use a seeded shuffle so all screens get the same deal
+    // --- Deck Utilities ---
+    const SUITS = ['♠', '♥', '♦', '♣'];
+    const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+    function createDeck() {
+    const variant = getVariant();
+    let deck = [];
+    if (variant === "short-deck") {
+        // Remove 2-5 for Short Deck
+        const shortRanks = ['6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+        for (const suit of SUITS) for (const rank of shortRanks) deck.push({ suit, rank });
+    } else {
+        for (const suit of SUITS) for (const rank of RANKS) deck.push({ suit, rank });
+    }
+    return deck;
+    }
     function seededShuffle(deck, seed) {
-        // Simple LCG for deterministic shuffling
-        let m = 0x80000000, a = 1103515245, c = 12345;
-        let state = seed;
-        for (let i = deck.length - 1; i > 0; i--) {
-            state = (a * state + c) % m;
-            const j = state % (i + 1);
-            [deck[i], deck[j]] = [deck[j], deck[i]];
-        }
-        return deck;
+      let m = 0x80000000, a = 1103515245, c = 12345, state = seed;
+      for (let i = deck.length - 1; i > 0; i--) {
+        state = (a * state + c) % m;
+        const j = state % (i + 1);
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+      return deck;
     }
-
     function getDeterministicSeed() {
-        // Use player names, handId, and a fixed string for the hand as the seed
-        const handId = getQueryParam('handId') || '';
-        const base = playerNames.join(',') + '-' + handId + '-pokerhand';
-        let hash = 5381;
-        for (let i = 0; i < base.length; i++) {
-            hash = ((hash << 5) + hash) + base.charCodeAt(i);
-        }
-        return Math.abs(hash);
+      const base = playerNames.join(',') + '-' + handId + '-pokerhand';
+      let hash = 5381;
+      for (let i = 0; i < base.length; i++) hash = ((hash << 5) + hash) + base.charCodeAt(i);
+      return Math.abs(hash);
     }
 
-    function startHand() {
-        let deck = createDeck();
-        const seed = getDeterministicSeed();
-        deck = seededShuffle(deck, seed);
-        playerHands = [];
-        communityCards = [];
-        folded = Array(playerNames.length).fill(false);
-        playerBets = Array(playerNames.length).fill(0);
-        for (let i = 0; i < playerNames.length; i++) {
-            playerHands.push([deck.pop(), deck.pop()]);
+    // --- UI Rendering ---
+    function cardToHTML(card) {
+      const color = (card.suit === '♥' || card.suit === '♦') ? 'red' : 'black';
+      return `<div class="card ${color}">
+        <div class="corner tl">${card.rank}<br>${card.suit}</div>
+        <div class="corner br">${card.rank}<br>${card.suit}</div>
+        <div class="suit-center">${card.suit}</div>
+      </div>`;
         }
-        window._pokerDeck = deck;
-        renderPlayers();
-        renderCommunityCards();
-        showActionButtons();
-        updateRevealButtons();
-        saveGameState();
-    }
-    // Reveal community cards in stages
-    // Auto-reveal community cards as the game progresses
-    function maybeAutoReveal() {
-        // Pre-flop: 0 community cards
-        // Flop: 3 community cards
-        // Turn: 4 community cards
-        // River: 5 community cards
-        if (communityCards.length === 0 && window._pokerDeck) {
-            // Burn one card (optional, for realism)
-            window._pokerDeck.pop();
-            // Reveal 3 cards
-            communityCards = [window._pokerDeck.pop(), window._pokerDeck.pop(), window._pokerDeck.pop()];
-            renderCommunityCards();
-            updateRevealButtons();
-            saveGameState();
-        } else if (communityCards.length === 3 && window._pokerDeck) {
-            // Burn one card
-            window._pokerDeck.pop();
-            // Reveal 1 card
-            communityCards.push(window._pokerDeck.pop());
-            renderCommunityCards();
-            updateRevealButtons();
-            saveGameState();
-        } else if (communityCards.length === 4 && window._pokerDeck) {
-            // Burn one card
-            window._pokerDeck.pop();
-            // Reveal 1 card
-            communityCards.push(window._pokerDeck.pop());
-            renderCommunityCards();
-            updateRevealButtons();
-            saveGameState();
-        }
-    }
-
-    function updateRevealButtons() {
-        // Hide manual reveal buttons, since auto-reveal is now used
-        document.getElementById('revealFlopBtn').style.display = 'none';
-        document.getElementById('revealTurnBtn').style.display = 'none';
-        document.getElementById('revealRiverBtn').style.display = 'none';
-    }
-
     function renderPlayers() {
-        const playersContainer = document.getElementById('playersContainer');
-        playersContainer.innerHTML = '';
-        // Get lastWinner from localStorage if present (for crown), but only show after first game
-        let lastWinner = localStorage.getItem('pokerLastWinner');
-        // Only show crown if a game has been played (i.e., lastWinner is set AND pokerGameState has community cards or bets)
-        let showCrown = false;
-        if (lastWinner) {
-            // Check if a game has been played: look for pokerGameState with non-empty communityCards or any bet > 0
-            try {
-                const stateStr = localStorage.getItem('pokerGameState');
-                if (stateStr) {
-                    const state = JSON.parse(stateStr);
-                    if (state && Array.isArray(state.communityCards) && state.communityCards.length > 0) {
-                        showCrown = true;
-                    } else if (state && Array.isArray(state.playerBets) && state.playerBets.some(b => b > 0)) {
-                        showCrown = true;
+        const playersDiv = document.getElementById('playersContainer');
+        if (!playersDiv) return;
+        // Get chips for each player from the lobby
+        db.ref('lobbies/' + lobbyCode).get().then(snapshot => {
+            let chipsMap = {};
+            if (snapshot.exists() && snapshot.val().players) {
+                snapshot.val().players.forEach(p => {
+                    chipsMap[p.name.trim().toLowerCase()] = p.chips ?? 1000;
+                });
+            }
+            playersDiv.innerHTML = ''; // <-- Move this here!
+            for (let i = 0; i < playerNames.length; i++) {
+                const playerName = playerNames[i];
+                const playerDiv = document.createElement('div');
+                playerDiv.className = 'player';
+
+                // Add player name
+                const nameElem = document.createElement('span');
+                nameElem.textContent = playerName;
+                playerDiv.appendChild(nameElem);
+
+                // Add credits/chips (purple)
+                const chips = chipsMap[playerName.trim().toLowerCase()] ?? 1000;
+                const chipsElem = document.createElement('div');
+                chipsElem.style.fontSize = '0.95em';
+                chipsElem.style.color = '#a855f7'; // purple
+                chipsElem.textContent = `Chips: ${chips}`;
+                playerDiv.appendChild(chipsElem);
+
+                // Add current bet
+                const bet = playerBets && playerBets[i] ? playerBets[i] : 0;
+                const betElem = document.createElement('div');
+                betElem.style.fontSize = '0.95em';
+                betElem.style.color = '#38bdf8';
+                betElem.textContent = `Bet: ${bet}`;
+                playerDiv.appendChild(betElem);
+
+                // Cards container
+                const cardsDiv = document.createElement('div');
+                cardsDiv.className = 'player-cards';
+
+                if (playerName.trim().toLowerCase() === myName.trim().toLowerCase()) {
+                    // Show my own cards using cardToHTML
+                    playerHands[i].forEach(card => {
+                        cardsDiv.innerHTML += cardToHTML(card);
+                    });
+                } else {
+                    // Show card backs for opponents
+                    for (let j = 0; j < (playerHands[i]?.length || 2); j++) {
+                        cardsDiv.innerHTML += `<div class="card back">🂠</div>`;
                     }
                 }
-            } catch (e) {}
-        }
-        playerNames.forEach((name, idx) => {
-            const playerDiv = document.createElement('div');
-            playerDiv.className = 'player' + (folded[idx] ? ' folded' : '') + (idx === currentPlayer ? ' active' : '');
-            let cardsHTML = '';
-            if (!folded[idx]) {
-                cardsHTML = `<div class="player-cards">${playerHands[idx].map(cardToHTML).join('')}</div>`;
+                playerDiv.appendChild(cardsDiv);
+                playersDiv.appendChild(playerDiv);
             }
-            let crown = (showCrown && lastWinner && lastWinner === name) ? ' <span title="Winner" style="color:gold;font-size:1.2em;">&#x1F451;</span>' : '';
-            playerDiv.innerHTML = `
-                <div style="font-weight:bold; margin-bottom:2px;">${name}${crown}</div>
-                <div style="margin-bottom:2px; font-size:0.95em; color:#a5b4fc;">Chips: 1000</div>
-                <div style="margin-bottom:4px; font-size:0.93em; color:#fbbf24;">Bet: $${playerBets[idx]}</div>
-                ${cardsHTML}
-            `;
-            playersContainer.appendChild(playerDiv);
         });
     }
-
     function renderCommunityCards() {
-        const cc = document.getElementById('communityCards');
-        cc.innerHTML = communityCards.length
-            ? communityCards.map(cardToHTML).join('')
-            : `<div style="color:#a5b4fc; font-size:1.1em; opacity:0.7; padding:1vw 0;">No community cards yet</div>`;
-        updateRevealButtons();
+      if (!Array.isArray(communityCards)) communityCards = [];
+      const cc = document.getElementById('communityCards');
+      cc.innerHTML = communityCards.length
+        ? communityCards.map(cardToHTML).join('')
+        : `<div style="color:#a5b4fc; font-size:1.1em; opacity:0.7; padding:1vw 0;">No community cards yet</div>`;
     }
 
-    // Only enable action buttons for the player whose turn it is ("You" by default, or from ?me=...)
-    function getMyName() {
-        // Use ?username=... from lobby, else ?me=..., else default to first player
-        return getQueryParam('username') || getQueryParam('me') || playerNames[0];
+// --- Action Buttons Logic ---
+
+    function playerAction(action) {
+        // Only allow action if it's this player's turn
+        const myNameNorm = myName.trim().toLowerCase();
+        const currentPlayerNameNorm = playerNames[currentPlayer].trim().toLowerCase();
+        if (myNameNorm !== currentPlayerNameNorm) return;
+
+        if (action === 'fold') {
+            folded[currentPlayer] = true;
+
+            // Check if only one player remains (everyone else folded)
+            const activePlayers = folded.map((f, idx) => !f ? idx : null).filter(idx => idx !== null);
+            if (activePlayers.length === 1) {
+                const winnerIdx = activePlayers[0];
+                const winnerName = playerNames[winnerIdx];
+                const reward = playerBets.reduce((a, b) => a + (b || 0), 0);
+
+                // Show winner overlay
+                showStatusOverlay(`<span style='color:#a855f7;'>${winnerName} Won The Round!<br><span style="color:#38bdf8;">${reward} Chips Awarded</span></span>`);
+
+                // Optionally, update chips in lobby (if you want to persist winnings)
+                db.ref('lobbies/' + lobbyCode).get().then(snapshot => {
+                    const lobby = snapshot.val();
+                    if (lobby && Array.isArray(lobby.players)) {
+                        const winnerPlayer = lobby.players.find(p => p.name.trim().toLowerCase() === winnerName.trim().toLowerCase());
+                        if (winnerPlayer) {
+                            winnerPlayer.chips = (winnerPlayer.chips || 1000) + reward;
+                            db.ref('lobbies/' + lobbyCode).set(lobby);
+                        }
+                    }
+                });
+
+                // End round after short delay
+                setTimeout(() => {
+                    db.ref('games/' + lobbyCode).remove().then(() => {
+                        window.location.href = `lobby.html?lobbyCode=${encodeURIComponent(lobbyCode)}&username=${encodeURIComponent(myName)}&justFinished=1`;
+                    });
+                }, 2200);
+                return;
+            }
+        } else if (action === 'call') {
+            // Match the highest bet
+            const maxBet = Math.max(...playerBets);
+            playerBets[currentPlayer] = maxBet;
+        } else if (action === 'raise') {
+            const betInput = document.getElementById('betAmount');
+            let raiseAmount = parseInt(betInput ? betInput.value : "0", 10);
+            if (isNaN(raiseAmount) || raiseAmount <= 0) raiseAmount = 10;
+            playerBets[currentPlayer] = Math.max(...playerBets) + raiseAmount;
+        }
+
+        // Advance to next player who hasn't folded
+        let nextPlayer = (currentPlayer + 1) % playerNames.length;
+        let attempts = 0;
+        while (folded[nextPlayer] && attempts < playerNames.length) {
+            nextPlayer = (nextPlayer + 1) % playerNames.length;
+            attempts++;
+        }
+        currentPlayer = nextPlayer;
+
+        saveGameState();
+        renderPlayers();
+        showActionButtons();
     }
 
     function showActionButtons() {
-        const myName = getMyName();
-        // If currentPlayer is undefined or out of range, default to 0
-        if (typeof currentPlayer !== 'number' || currentPlayer < 0 || currentPlayer >= playerNames.length) {
-            currentPlayer = 0;
-        }
-        // Always let the host (first player in playerNames) start the hand
-        if (playerBets.every(b => b === 0) && communityCards.length === 0) {
-            currentPlayer = 0;
-        }
-        // Use trimmed and case-insensitive names for comparison
+        // Only enable for the current player
         const myNameNorm = myName.trim().toLowerCase();
         const currentPlayerNameNorm = playerNames[currentPlayer].trim().toLowerCase();
         const isMyTurn = currentPlayerNameNorm === myNameNorm;
@@ -553,6 +499,7 @@
         raiseBtn.disabled = !isMyTurn;
         betInput.querySelector('input').disabled = !isMyTurn;
     }
+
     function hideActionButtons() {
         document.getElementById('foldBtn').style.display = 'none';
         document.getElementById('callBtn').style.display = 'none';
@@ -560,294 +507,198 @@
         document.getElementById('betInputContainer').style.display = 'none';
     }
 
-    function playerAction(action, overrideName) {
-        // Always load the latest state from Firebase before acting
-        loadGameState(() => {
-            let myName = getMyName();
-            const isConsole = !!overrideName;
-            const isHost = myName.trim().toLowerCase() === playerNames[0].trim().toLowerCase();
-            if (isConsole && (!isHost || (overrideName && overrideName.trim().toLowerCase() === myName.trim().toLowerCase()))) return;
-            if (overrideName && isConsole) myName = overrideName;
-            if (playerNames[currentPlayer].trim().toLowerCase() !== myName.trim().toLowerCase()) return;
-            if (action === 'fold') {
-                folded[currentPlayer] = true;
-                showStatusOverlay(`<span style='color:#a855f7;'>${myName} folded!</span>`);
-                setTimeout(hideStatusOverlay, 1500);
-            } else if (action === 'call') {
-                playerBets[currentPlayer] += 10;
-            } else if (action === 'raise') {
-                const raiseAmount = parseInt(document.getElementById('betAmount').value, 10) || 10;
-                playerBets[currentPlayer] += raiseAmount;
+    // Attach event listeners after DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('foldBtn').onclick = function() { playerAction('fold'); };
+        document.getElementById('callBtn').onclick = function() { playerAction('call'); };
+        document.getElementById('raiseBtn').onclick = function() { playerAction('raise'); };
+
+        db.ref('games/' + lobbyCode).get().then(snapshot => {
+            if (!snapshot.exists()) {
+                startHand(); // This will also call renderPlayers, renderCommunityCards, showActionButtons
             }
-            const activePlayers = folded.map(f => !f).filter(Boolean).length;
-            if (activePlayers === 1) {
-                let winnerIdx = folded.findIndex(f => !f);
-                let winnerName = playerNames[winnerIdx];
-                showStatusOverlay(`<span style='color:#a855f7;'>${winnerName} wins the hand!</span>`);
-                // Save winner for crown (could be moved to Firebase for full sync)
-                setTimeout(() => {
-                    hideStatusOverlay();
-                    let params = new URLSearchParams(window.location.search);
-                    let lobbyCode = params.get('lobbyCode') || '';
-                    let username = params.get('me') || '';
-                    let url = `lobby.html`;
-                    if (lobbyCode || username) {
-                        url += '?';
-                        if (lobbyCode) url += `lobbyCode=${encodeURIComponent(lobbyCode)}`;
-                        if (lobbyCode && username) url += '&';
-                        if (username) url += `username=${encodeURIComponent(username)}`;
-                    }
-                    window.location.href = url;
-                }, 2200);
-                return;
-            }
-            currentPlayer = (currentPlayer + 1) % playerNames.length;
+        });
+    });
+    // --- Game State Sync ---
+    function saveGameState() {
+      if (!lobbyCode) return;
+      db.ref('games/' + lobbyCode).set({
+        playerHands, communityCards, currentPlayer, folded, playerBets
+      });
+    }
+    function loadGameState(callback) {
+      if (!lobbyCode) return false;
+      db.ref('games/' + lobbyCode).get().then(snapshot => {
+        const state = snapshot.val();
+        if (!state) { if (callback) callback(false); return false; }
+        playerHands = state.playerHands;
+        communityCards = state.communityCards;
+        currentPlayer = state.currentPlayer;
+        folded = state.folded;
+        playerBets = state.playerBets;
+        renderPlayers();
+        renderCommunityCards();
+        showActionButtons();
+        if (callback) callback(true);
+        return true;
+      });
+    }
+
+    if (lobbyCode) {
+        db.ref('games/' + lobbyCode).on('value', function(snapshot) {
+            const state = snapshot.val();
+            if (!state) return;
+            playerHands = state.playerHands;
+            communityCards = state.communityCards;
+            currentPlayer = state.currentPlayer;
+            folded = state.folded;
+            playerBets = state.playerBets;
             renderPlayers();
-            maybeAutoReveal();
-            saveGameState();
+            renderCommunityCards();
             showActionButtons();
+
+            // --- Show win message and redirect if game is over ---
+            if (state.gameOver) {
+                const winner = state.winnerName || "Someone";
+                showStatusOverlay(`<span style='color:#a855f7;'>${winner} wins the hand!</span>`);
+                setTimeout(() => {
+                    db.ref('games/' + lobbyCode).remove().then(() => {
+                        window.location.href = `lobby.html?lobbyCode=${encodeURIComponent(lobbyCode)}&username=${encodeURIComponent(myName)}&justFinished=1`;
+                    });
+                }, 2200);
+            }
         });
     }
 
-    // For testing/admin: allow folding for any player via console, but only host can do it and not for themselves
-    window.foldFor = function(name) {
-        playerAction('fold', name);
+// --- Game Logic ---
+
+    // Always use Texas Hold'em
+    function getVariant() {
+        return 'texas-holdem';
     }
 
-    // Start the first hand after rules modal is closed
-    function afterRulesModal() {
-        // Try to load existing state, otherwise start new hand
-        if (!loadGameState()) {
-            startHand();
-        } else {
-            // Rebuild deck for community card reveals if needed
-            let deck = createDeck();
-            const seed = getDeterministicSeed();
-            deck = seededShuffle(deck, seed);
-            // Remove dealt cards
-            for (let i = 0; i < playerNames.length * 2; i++) deck.pop();
-            // Remove community cards and burns
-            let burns = 0;
-            if (communityCards.length >= 3) burns++;
-            if (communityCards.length >= 4) burns++;
-            if (communityCards.length === 5) burns++;
-            for (let i = 0; i < burns; i++) deck.pop();
-            for (let i = 0; i < communityCards.length; i++) deck.pop();
-            window._pokerDeck = deck;
-            updateRevealButtons();
+    // Call this to start a new hand
+    function startHand() {
+        let deck = [];
+        for (const suit of SUITS) for (const rank of RANKS) deck.push({ suit, rank });
+        const seed = getDeterministicSeed();
+        deck = seededShuffle(deck, seed);
+        playerHands = [];
+        communityCards = [];
+        folded = Array(playerNames.length).fill(false);
+        playerBets = Array(playerNames.length).fill(0);
+        window._pokerDeck = deck;
+
+        // Texas Hold'em: 2 cards per player, 5 community cards
+        for (let i = 0; i < playerNames.length; i++) playerHands.push([deck.pop(), deck.pop()]);
+        communityCards = [];
+
+        saveGameState();
+        renderPlayers();
+        renderCommunityCards();
+        showActionButtons();
+    }
+
+    // --- Community card logic for Hold'em ---
+    function maybeAutoReveal() {
+        // Flop, turn, river logic
+        if (communityCards.length === 0 && window._pokerDeck) {
+            window._pokerDeck.pop(); // burn
+            communityCards = [window._pokerDeck.pop(), window._pokerDeck.pop(), window._pokerDeck.pop()];
+            renderCommunityCards();
+            saveGameState();
+        } else if (communityCards.length === 3 && window._pokerDeck) {
+            window._pokerDeck.pop(); // burn
+            communityCards.push(window._pokerDeck.pop());
+            renderCommunityCards();
+            saveGameState();
+        } else if (communityCards.length === 4 && window._pokerDeck) {
+            window._pokerDeck.pop(); // burn
+            communityCards.push(window._pokerDeck.pop());
+            renderCommunityCards();
+            saveGameState();
         }
-        showActionButtons(); // Ensure correct enable/disable on reload
     }
-    // Remove manual reveal button listeners (auto-reveal is now used)
 
-    // Poker variant rules mapping
+    // --- Overlay helpers ---
+    function showStatusOverlay(msg) {
+      const overlay = document.getElementById('statusOverlay');
+      const msgDiv = document.getElementById('statusOverlayMsg');
+      msgDiv.innerHTML = msg;
+      overlay.style.display = 'block';
+    }
+    function hideStatusOverlay() {
+      const overlay = document.getElementById('statusOverlay');
+      overlay.style.display = 'none';
+    }
+
+    // --- Poker variant rules mapping ---
     const pokerVariantRules = {
-        "texas-holdem": {
-            name: "Texas Hold'em",
-            rules: `
-                <ul>
-                    <li>Each player is dealt 2 private cards (hole cards).</li>
-                    <li>Five community cards are dealt face up in three stages: the flop (3), turn (1), and river (1).</li>
-                    <li>Players use any combination of their 2 hole cards and the 5 community cards to make the best 5-card hand.</li>
-                    <li>Four betting rounds: pre-flop, flop, turn, river.</li>
-                    <li>Standard hand rankings apply.</li>
-                </ul>
-            `
-        },
-        "omaha": {
-            name: "Omaha",
-            rules: `
-                <ul>
-                    <li>Each player is dealt 4 private cards.</li>
-                    <li>Five community cards are dealt face up.</li>
-                    <li>Players must use exactly 2 of their hole cards and exactly 3 community cards to make the best 5-card hand.</li>
-                    <li>Four betting rounds: pre-flop, flop, turn, river.</li>
-                </ul>
-            `
-        },
-        "omaha-hi-lo": {
-            name: "Omaha Hi-Lo",
-            rules: `
-                <ul>
-                    <li>Same as Omaha, but the pot is split between the best high hand and the best qualifying low hand (8 or better).</li>
-                    <li>Players must use exactly 2 hole cards and 3 community cards for both high and low hands.</li>
-                </ul>
-            `
-        },
-        "five-card-draw": {
-            name: "Five Card Draw",
-            rules: `
-                <ul>
-                    <li>Each player is dealt 5 private cards.</li>
-                    <li>After the first betting round, players may discard and draw new cards.</li>
-                    <li>One more betting round follows, then showdown.</li>
-                </ul>
-            `
-        },
-        "seven-card-stud": {
-            name: "Seven Card Stud",
-            rules: `
-                <ul>
-                    <li>Each player is dealt 7 cards (3 down, 4 up) over five betting rounds.</li>
-                    <li>No community cards.</li>
-                    <li>Players make the best 5-card hand from their 7 cards.</li>
-                </ul>
-            `
-        },
-        "seven-card-stud-hi-lo": {
-            name: "Seven Card Stud Hi-Lo",
-            rules: `
-                <ul>
-                    <li>Same as Seven Card Stud, but the pot is split between the best high and best qualifying low hand (8 or better).</li>
-                </ul>
-            `
-        },
-        "razz": {
-            name: "Razz",
-            rules: `
-                <ul>
-                    <li>Seven Card Stud variant where the lowest hand wins.</li>
-                    <li>Straights and flushes do not count against you; A-2-3-4-5 is the best hand.</li>
-                </ul>
-            `
-        },
-        "pineapple": {
-            name: "Pineapple",
-            rules: `
-                <ul>
-                    <li>Like Texas Hold'em, but each player is dealt 3 hole cards and must discard one after the flop.</li>
-                </ul>
-            `
-        },
-        "crazy-pineapple": {
-            name: "Crazy Pineapple",
-            rules: `
-                <ul>
-                    <li>Like Pineapple, but players discard one of their 3 hole cards after the flop betting round (not before).</li>
-                </ul>
-            `
-        },
-        "triple-draw": {
-            name: "Triple Draw Lowball",
-            rules: `
-                <ul>
-                    <li>Each player is dealt 5 cards. The goal is to make the lowest hand (A-2-3-4-5 best).</li>
-                    <li>Players may draw up to 3 times, with a betting round after each draw.</li>
-                </ul>
-            `
-        },
-        "badugi": {
-            name: "Badugi",
-            rules: `
-                <ul>
-                    <li>Each player is dealt 4 cards. The goal is to make the lowest hand with 4 different suits and no pairs (A-2-3-4 of different suits is best).</li>
-                    <li>Players may draw up to 3 times, with a betting round after each draw.</li>
-                </ul>
-            `
-        },
-        "short-deck": {
-            name: "Short Deck Hold'em",
-            rules: `
-                <ul>
-                    <li>Like Texas Hold'em, but played with a 36-card deck (2s through 5s removed).</li>
-                    <li>Hand rankings are slightly different: a flush beats a full house.</li>
-                </ul>
-            `
-        },
-        "chinese-poker": {
-            name: "Chinese Poker",
-            rules: `
-                <ul>
-                    <li>Each player is dealt 13 cards and arranges them into three poker hands (front, middle, back).</li>
-                    <li>Hands are compared against opponents' corresponding hands for points.</li>
-                </ul>
-            `
-        },
-        "courchevel": {
-            name: "Courchevel",
-            rules: `
-                <ul>
-                    <li>Omaha variant where each player is dealt 5 hole cards and the first community card is dealt face up before the first betting round.</li>
-                    <li>Players must use exactly 2 hole cards and 3 community cards.</li>
-                </ul>
-            `
-        },
-        "horse": {
-            name: "HORSE (Mixed Game)",
-            rules: `
-                <ul>
-                    <li>Rotation of 5 games: Hold'em, Omaha Hi-Lo, Razz, Seven Card Stud, and Stud Eight or Better.</li>
-                    <li>Game changes after a set number of hands or time.</li>
-                </ul>
-            `
-        },
-        "eight-game": {
-            name: "8-Game Mix",
-            rules: `
-                <ul>
-                    <li>Rotation of 8 games: Limit Hold'em, Omaha Hi-Lo, Razz, Seven Card Stud, Stud Hi-Lo, No-Limit Hold'em, Pot-Limit Omaha, and 2-7 Triple Draw.</li>
-                    <li>Game changes after a set number of hands or time.</li>
-                </ul>
-            `
-        },
-        "dealers-choice": {
-            name: "Dealer's Choice",
-            rules: `
-                <ul>
-                    <li>Each dealer chooses the poker variant to be played for that hand from a pre-approved list.</li>
-                </ul>
-            `
-        }
+    "texas-holdem": {
+        name: "Texas Hold'em",
+        rules: `
+        <ul>
+            <li>Each player is dealt 2 private cards (hole cards).</li>
+            <li>Five community cards are dealt face up in three stages: the flop (3), turn (1), and river (1).</li>
+            <li>Players use any combination of their 2 hole cards and the 5 community cards to make the best 5-card hand.</li>
+            <li>Four betting rounds: pre-flop, flop, turn, river.</li>
+            <li>Standard hand rankings apply.</li>
+        </ul>
+        `
+    }
     };
 
     // Get variant from query param or default
     function getVariant() {
-        return getQueryParam('variant') || 'texas-holdem';
+      return getQueryParam('variant') || 'texas-holdem';
     }
 
     // --- Modal logic for rules overlay and blur ---
     function showRulesModal() {
-        const overlay = document.getElementById('rulesModalOverlay');
-        const main = document.getElementById('mainContainer');
-        overlay.style.display = 'flex';
-        main.classList.add('blurred');
+      const overlay = document.getElementById('rulesModalOverlay');
+      const main = document.getElementById('mainContainer');
+      overlay.style.display = 'flex';
+      main.classList.add('blurred');
+      renderModalRules();
     }
     function hideRulesModal() {
-        const overlay = document.getElementById('rulesModalOverlay');
-        const main = document.getElementById('mainContainer');
-        overlay.style.display = 'none';
-        main.classList.remove('blurred');
+      const overlay = document.getElementById('rulesModalOverlay');
+      const main = document.getElementById('mainContainer');
+      overlay.style.display = 'none';
+      main.classList.remove('blurred');
     }
-    // Fill modal with rules for the selected variant
     function renderModalRules() {
-        const variant = getVariant();
-        const modalRulesContent = document.getElementById('modalRulesContent');
-        const modalVariantName = document.getElementById('modalVariantName');
-        if (pokerVariantRules[variant]) {
-            modalRulesContent.innerHTML = pokerVariantRules[variant].rules;
-            modalVariantName.textContent = pokerVariantRules[variant].name + ' Rules';
-        } else {
-            modalRulesContent.innerHTML = 'Select a variant to see the rules.';
-            modalVariantName.textContent = 'Rules';
-        }
+      const variant = getVariant();
+      const modalRulesContent = document.getElementById('modalRulesContent');
+      const modalVariantName = document.getElementById('modalVariantName');
+      if (pokerVariantRules[variant]) {
+        modalRulesContent.innerHTML = pokerVariantRules[variant].rules;
+        modalVariantName.textContent = pokerVariantRules[variant].name + ' Rules';
+      } else {
+        modalRulesContent.innerHTML = 'Select a variant to see the rules.';
+        modalVariantName.textContent = 'Rules';
+      }
     }
-    // On load, show modal and blur game
-    window.addEventListener('DOMContentLoaded', function() {
-        afterRulesModal();
-        showActionButtons();
-        // No polling needed, Firebase listener handles sync
-    });
 
-    function showStatusOverlay(msg) {
-        const overlay = document.getElementById('statusOverlay');
-        const msgDiv = document.getElementById('statusOverlayMsg');
-        msgDiv.innerHTML = msg;
-        overlay.style.display = 'block';
-    }
-    function hideStatusOverlay() {
-        const overlay = document.getElementById('statusOverlay');
-        overlay.style.display = 'none';
-    }
-    </script>
+    // --- Button Event Handlers ---
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('foldBtn').onclick = function() { playerAction('fold'); };
+        document.getElementById('callBtn').onclick = function() { playerAction('call'); };
+        document.getElementById('raiseBtn').onclick = function() { playerAction('raise'); };
+        // Set variant name in header
+        const variantObj = pokerVariantRules[getVariant()];
+        document.getElementById('variantName').textContent = variantObj ? variantObj.name : getVariant();
+        // Start game if no state exists yet
+        db.ref('games/' + lobbyCode).get().then(snapshot => {
+            if (!snapshot.exists()) {
+                startHand();
+                // Ensure UI is rendered after starting a new hand
+                renderPlayers();
+                renderCommunityCards();
+                showActionButtons();
+            }
+        });
+    });
+  </script>
 </body>
 </html>

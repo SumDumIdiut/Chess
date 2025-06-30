@@ -276,27 +276,9 @@
                 </div>
                 <div class="lobby-panel host-controls-panel" style="display: flex; flex-direction: column; justify-content: flex-start; align-items: center; height: 100%;">
                     <h3 style="text-align:center; margin-bottom: 18px;">Host Controls</h3>
-                    <div class="variant-selector" style="width: 100%;">
-                        <label for="variantSelect">Game Variant</label>
-                        <select id="variantSelect" onchange="onVariantChanged(this.value)" style="width: 100%;">
-                            <option value="texas-holdem">Texas Hold'em</option>
-                            <option value="omaha">Omaha</option>
-                            <option value="omaha-hi-lo">Omaha Hi-Lo</option>
-                            <option value="five-card-draw">Five Card Draw</option>
-                            <option value="seven-card-stud">Seven Card Stud</option>
-                            <option value="seven-card-stud-hi-lo">Seven Card Stud Hi-Lo</option>
-                            <option value="razz">Razz</option>
-                            <option value="pineapple">Pineapple</option>
-                            <option value="crazy-pineapple">Crazy Pineapple</option>
-                            <option value="triple-draw">Triple Draw Lowball</option>
-                            <option value="badugi">Badugi</option>
-                            <option value="short-deck">Short Deck Hold'em</option>
-                            <option value="chinese-poker">Chinese Poker</option>
-                            <option value="courchevel">Courchevel</option>
-                            <option value="horse">HORSE</option>
-                            <option value="eight-game">8-Game Mix</option>
-                            <option value="dealers-choice">Dealer's Choice</option>
-                        </select>
+                    <div class="variant-display" id="variantDisplay" style="width: 100%; margin: 20px 0; text-align: center;">
+                        <div style="font-size: 1.1em; color: white; font-weight: bold;">Game Variant</div>
+                        <div style="font-size: 1.25em; color: #3b82f6; margin-top: 6px;">Texas Hold'em</div>
                     </div>
                     <div class="blind-options-vertical" id="blindOptionsGroup" style="width: 100%;">
                         <label class="blind-checkbox-label">
@@ -313,9 +295,6 @@
                     <button id="startGameBtn" class="start-game-btn" onclick="startOnlineGame()" style="margin-top: 18px; width: 100%;">Start Game</button>
                     <button class="back-btn" onclick="window.location.href='../Poker.html'" style="width: 100%;">Back to Main Menu</button>
                 </div>
-            </div>
-        </div>
-    </div>
     <script>
     // Firebase configuration
     // Firebase configuration (API key removed for security)
@@ -328,11 +307,68 @@
     </script>
     <script src="../lobby.js"></script>
     <script>
+
+    function addBot() {
+        const botNames = [
+            "Ace", "Bluff", "Chips", "Dealer", "Flush", "River", "Stack", "Tilt", "Lucky", "Queen",
+            "King", "Jack", "Maverick", "Shark", "Bullet", "Cowboy", "Doc", "Fish", "Gambler", "Highroller",
+            "Ice", "Joker", "Kid", "Legend", "Nuts", "Outlaw", "Pocket", "Quickdraw", "Ranger", "Slick",
+            "Tex", "Vegas", "Wildcard", "Zigzag", "Rookie", "Scout", "Viper", "Wolf", "Snake", "Panther",
+            "Falcon", "Eagle", "Tiger", "Lion", "Bear", "Moose", "Otter", "Fox", "Hawk", "Badger",
+            "Coyote", "Raven", "Crow", "Owl", "Bison", "Buffalo", "Mustang", "Stallion", "Comet", "Rocket",
+            "Blaze", "Storm", "Thunder", "Lightning", "Frost", "Shadow", "Ghost", "Phantom", "Specter", "Spirit",
+            "Bandit", "Vagabond", "Nomad", "Drifter", "Wanderer", "Scout", "Pioneer", "Ranger", "Tracker", "Hunter",
+            "Miner", "Prospector", "Scout", "Scoutmaster", "Marshal", "Deputy", "Sheriff", "Judge", "Lawman", "Boss",
+            "Chief", "Captain", "Major", "Colonel", "General", "Sarge", "Private", "Corporal", "Lieutenant", "Commander"
+        ];
+        const codeElem = document.getElementById('lobbyRoomCode');
+        const code = codeElem ? codeElem.textContent.trim() : '';
+        if (!code) return;
+        db.ref('lobbies/' + code).get().then(snapshot => {
+            const roomData = snapshot.val();
+            if (!roomData || !Array.isArray(roomData.players)) return;
+            // Generate a unique bot name from the list
+            const existingNames = roomData.players.map(p => p.name);
+            let availableNames = botNames.filter(name => !existingNames.includes(name));
+            let botName;
+            if (availableNames.length > 0) {
+                botName = availableNames[Math.floor(Math.random() * availableNames.length)];
+            } else {
+                // If all names are taken, fallback to Bot N
+                let botNum = 1;
+                botName = `Bot ${botNum}`;
+                while (existingNames.includes(botName)) {
+                    botNum++;
+                    botName = `Bot ${botNum}`;
+                }
+            }
+            roomData.players.push({
+                name: botName,
+                chips: 1000,
+                isBot: true
+            });
+            db.ref('lobbies/' + code).set(roomData);
+        });
+    }
+    function removeBot(code, botIdx) {
+        db.ref('lobbies/' + code).get().then(snapshot => {
+            const roomData = snapshot.val();
+            if (!roomData || !Array.isArray(roomData.players)) return;
+            if (roomData.players[botIdx] && roomData.players[botIdx].isBot) {
+                roomData.players.splice(botIdx, 1);
+                db.ref('lobbies/' + code).set(roomData);
+            }
+        });
+    }
+
     // Helper to get query param
     function getQueryParam(name) {
         const url = new URL(window.location.href);
         return url.searchParams.get(name);
     }
+    // Query for username
+    var username = getQueryParam('username');
+
     // Copy code button handler
     function copyRoomCode() {
         var codeElem = document.getElementById('lobbyRoomCode');
@@ -410,22 +446,33 @@
             pollGameStarted(code);
         }
     });
+
     // Minimal updateLobbyUI implementation
     function updateLobbyUI(code, roomData) {
         const playersList = document.getElementById('playersList');
         if (!playersList) return;
-        // If roomData not passed, fetch from Firebase synchronously (should not happen in normal flow)
         if (!roomData) return;
         playersList.innerHTML = '';
         if (roomData && Array.isArray(roomData.players)) {
-            // No lastWinner crown for now (could be added via Firebase if needed)
-            roomData.players.forEach(player => {
+            roomData.players.forEach((player, idx) => {
                 const li = document.createElement('li');
                 li.className = 'player-item' + (player.isHost ? ' host' : '');
-                li.innerHTML = `<span>${player.name}${player.isHost ? ' (Host)' : ''}</span><span class="player-status">Ready</span>`;
+                let botRemoveBtn = '';
+                if (player.isBot) {
+                    botRemoveBtn = `<button class="remove-bot-btn" title="Remove Bot" data-bot-index="${idx}" style="margin-left:8px; background:none; border:none; color:#f87171; font-size:1.2em; cursor:pointer; font-weight:bold;">×</button>`;
+                }
+                li.innerHTML = `<span>${player.name}${player.isHost ? ' (Host)' : ''} <span style="color:#fbbf24;font-weight:bold;">($${player.chips ?? 1000})</span></span><span class="player-status">Ready</span>${botRemoveBtn}`;
                 playersList.appendChild(li);
             });
         }
+        // Add event listeners for remove bot buttons
+        document.querySelectorAll('.remove-bot-btn').forEach(btn => {
+            btn.onclick = function(e) {
+                const botIdx = parseInt(btn.getAttribute('data-bot-index'), 10);
+                removeBot(code, botIdx);
+                e.stopPropagation();
+            };
+        });
         // Host-only controls logic
         var username = getQueryParam('username');
         var isHost = false;
@@ -434,18 +481,15 @@
             isHost = hostPlayer && hostPlayer.name.trim().toLowerCase() === (username ? username.trim().toLowerCase() : '');
         }
         // Controls
-        var variantSelect = document.getElementById('variantSelect');
         var enableSmallBlind = document.getElementById('enableSmallBlind');
         var enableBigBlind = document.getElementById('enableBigBlind');
         var startGameBtn = document.getElementById('startGameBtn');
-        if (variantSelect) variantSelect.disabled = !isHost;
         if (enableSmallBlind) enableSmallBlind.disabled = !isHost;
         if (enableBigBlind) enableBigBlind.disabled = !isHost;
         if (startGameBtn) {
             startGameBtn.disabled = !isHost;
             startGameBtn.title = isHost ? '' : 'Only the host can start the game';
         }
-        if (variantSelect) variantSelect.title = isHost ? '' : 'Only the host can change the game variant';
         if (enableSmallBlind) enableSmallBlind.title = isHost ? '' : 'Only the host can change blinds';
         if (enableBigBlind) enableBigBlind.title = isHost ? '' : 'Only the host can change blinds';
 
@@ -488,10 +532,10 @@
             var handId = Math.floor(Math.random() * 1e12).toString(36);
             roomData.gameStarted = true;
             roomData.handId = handId;
+            roomData.variant = 'texas-holdem'; // Always Texas Hold'em
             db.ref('lobbies/' + code).set(roomData).then(() => {
                 var players = roomData.players.map(p => encodeURIComponent(p.name)).join(',');
-                var variant = document.getElementById('variantSelect').value;
-                var url = `game.html?players=${players}&variant=${variant}&handId=${handId}&lobbyCode=${code}`;
+                var url = `game.html?players=${players}&variant=texas-holdem&handId=${handId}&lobbyCode=${code}&username=${encodeURIComponent(username)}`;
                 window.location.href = url;
             });
         });
@@ -499,13 +543,20 @@
 
     // All clients: poll for gameStarted and redirect if set
     function pollGameStarted(code) {
+        // Prevent auto-redirect if justFinished=1 is present in the URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('justFinished')) {
+            return; // Do not set up the listener if just finished a game
+        }
+
         db.ref('lobbies/' + code).on('value', function(snapshot) {
             var roomData = snapshot.val();
             if (roomData && roomData.gameStarted) {
                 var players = roomData.players.map(p => encodeURIComponent(p.name)).join(',');
                 var variant = roomData.variant || 'texas-holdem';
                 var handId = roomData.handId || (Math.floor(Math.random() * 1e12).toString(36));
-                var url = `game.html?players=${players}&variant=${variant}&handId=${handId}&lobbyCode=${code}`;
+                var username = getQueryParam('username');
+                var url = `game.html?players=${players}&variant=${variant}&handId=${handId}&lobbyCode=${code}&username=${encodeURIComponent(username)}`;
                 window.location.href = url;
             }
         });
