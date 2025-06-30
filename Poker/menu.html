@@ -134,7 +134,7 @@
             // Joining a lobby: check if it exists first
             db.ref('lobbies/' + code).get().then(snapshot => {
                 if (snapshot.exists()) {
-                    window.location.href = `Poker/lobby.html?lobbyCode=${code}&username=${encodeURIComponent(username)}`;
+                    window.location.href = `lobby.html?lobbyCode=${code}&username=${encodeURIComponent(username)}`;
                 } else {
                     showTempError(lobbyLabel, "Lobby not found.", "Lobby Code (leave blank to create)");
                 }
